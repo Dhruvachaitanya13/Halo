@@ -174,3 +174,21 @@ Heart rate was often "signal too weak" on real use. Cause and fix:
 Checked: 26 unit tests. A simulation with a weak pulse and realistic noise gave a correct, reported value in 5 of 40 runs at 8 samples/s, 9 of 40 at 15, and 35 of 40 at 30. A full scan in headless Chromium with the real face tracker on a video of a still portrait whose skin tone was modulated at 72 bpm returned 72 bpm, although the tracker there managed only 16 frames in 27 s. That modulation (about 1%) is stronger than a real pulse.
 
 Not checked: a live person, or Safari. Camera heart rate still needs even front light and a still head; in dim room light on a laptop camera it can honestly fail, and the app will say so rather than guess.
+
+## Version 0.9
+
+The thinking tests are now one game, the **docking mission** (`js/mission.js`). It is based on the four rounds of Kavya's "MissionPulse - Daily Dock" (reaction, go/no-go attention, control, sequence memory), rebuilt on one canvas so it plays by touch on a phone as well as by keyboard.
+
+| Stage | Measures | How it plays |
+|---|---|---|
+| Ignition | reaction time, early taps, misses (cue times out after 1.5 s) | tap when the amber ring turns green |
+| Debris field | go/no-go attention: hits, misses, taps on debris | tap supply pods (blue diamond), leave debris (red rock); about 30% are debris, each visible 1 s |
+| Clearance code | memory span, 3 to 7, ends after two wrong codes in a row | six ports flash in order; tap them back, or use keys 1-6 |
+| Final approach | tracking error, time on target, docked or not, over 25 s | drag to steer the crosshair onto a drifting port; arrows or WASD also work |
+
+- Which stages run still follows the check length in `js/config.js` (quick: Ignition only; standard: three stages; full: all four).
+- Points, streaks, sounds, vibration and particles are for fun only. They never enter the readiness score. The measurements are the raw trial data, turned into the same statistics as before by `js/dsp.js`.
+- Cues are visual only. Sounds play after a response, never with a cue, so they cannot shorten a reaction time. Sound can be switched off in the game header.
+- On touch the crosshair is dragged like a trackpad, so the finger does not cover the target.
+- Changes that affect comparison with earlier checks: the memory stage has 6 ports (was 9 squares), and a missed reaction cue now counts as a miss instead of waiting forever. Records carry `tests.mission.game_version: 2`.
+- Checked: an automated player completed the full mission at phone size with no errors and the results page showed the expected values; Space and touch-drag input were checked separately. Not checked: play on a real phone, sound, or vibration.

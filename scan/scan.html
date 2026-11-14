@@ -52,11 +52,10 @@
 </section>
 
 <section id="game" class="card" hidden>
-  <h2 id="gtitle">Reaction test</h2>
-  <p id="ghelp" role="status" aria-live="polite"></p>
-  <div id="pad" class="pad wait" role="button" tabindex="0"><span id="padmsg">Get ready</span></div>
-  <div id="grid" class="grid" hidden></div>
-  <canvas id="dock" hidden></canvas>
+  <div class="ghead"><div><small class="eyebrow">Docking mission</small><h2 id="gtitle">Mission</h2></div><button id="mute" class="ghost chip" type="button" aria-pressed="false">Sound on</button></div>
+  <canvas id="mission" class="mission" tabindex="0" aria-label="Docking mission game. Tap, or press Space, to respond."></canvas>
+  <p id="ghelp" class="ghelp" role="status" aria-live="polite"></p>
+  <small>These are the thinking tests, played as one flight. Points are for fun; the measurements are your reaction times, taps and steering.</small>
 </section>
 
 <section id="recovery" class="card" hidden>

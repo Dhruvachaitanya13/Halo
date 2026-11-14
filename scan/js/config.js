@@ -7,10 +7,10 @@ export const CONFIG = {
   QUALITY_MIN: 0.35,           // heart and breathing values below this signal quality are not shown or saved
   MODES: {                     // what each check length includes
     quick:    { label: "Quick (about 1 minute)",     scan: 30, tests: ["reaction"],                    trials: 5 },
-    standard: { label: "Standard (about 3 minutes)", scan: 45, tests: ["reaction", "docking", "gonogo"], trials: 6 },
+    standard: { label: "Standard (about 3 minutes)", scan: 45, tests: ["reaction", "gonogo", "docking"], trials: 6 },
     full:     { label: "Full (about 5 minutes)",     scan: 60, tests: ["reaction", "gonogo", "memory", "docking"], trials: 8 },
   },
   DOCKING_SECONDS: 25,         // length of the docking task
   RECOVERY_SECONDS: 15,        // still period after the tests, for the recovery heart rate
-  DEFAULTS: { mode: "standard", method: "auto", camera: "user", overlay: true, validation: false, keepCamera: true },
+  DEFAULTS: { mode: "standard", method: "auto", camera: "user", overlay: true, validation: false, keepCamera: true, sound: true },
 };

@@ -2,11 +2,12 @@
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
 import { CONFIG } from "./config.js";
 import * as D from "./dsp.js";
+import { runMission } from "./mission.js";
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(); // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.8.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.9.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -240,76 +241,21 @@ $("skip").addEventListener("click", () => {       // works at any point, includi
 // ------------------------------------------------------------------ cognitive tests
 const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
 async function runTests() {
-  for (const name of mode.tests) await TESTS[name]();
+  // The tests are played as one docking mission (js/mission.js). It returns raw trial data; the statistics are worked out here, as before.
+  const raw = await runMission($("mission"), { stages: mode.tests, trials: mode.trials, dockSeconds: CONFIG.DOCKING_SECONDS, muted: () => !settings.sound, debug: !!params.get("demo"),
+    onStage: (title, help) => { $("gtitle").textContent = title; $("ghelp").textContent = help; } });
+  if (raw.reaction) state.tests.reaction = { ...D.reactionStats(raw.reaction.rts, raw.reaction.falseStarts), misses: raw.reaction.misses };
+  if (raw.gonogo) state.tests.gonogo = D.goNoGoStats(raw.gonogo.trials);
+  if (raw.memory) state.tests.memory = D.memoryStats(raw.memory.attempts);
+  if (raw.docking) state.tests.docking = D.dockingStats(raw.docking.samples);
+  state.tests.mission = { points: raw.points, best_streak: raw.best_streak, game_version: 2 };
   state.tTestsEnd = state.lastT;
   if (running && settings.keepCamera) { show("recovery"); for (let s = CONFIG.RECOVERY_SECONDS; s > 0; s--) { $("rectimer").textContent = `${s} s`; await sleepMs(1000); } }
   stopCamera(); document.querySelector(".stage.mini")?.remove();
   $("valbox").hidden = !settings.validation; show("sleep");
 }
-const TESTS = {
-  reaction: () => new Promise((done) => {
-    $("gtitle").textContent = "Reaction test"; $("ghelp").textContent = "Tap the panel as soon as it turns green. Do not tap early.";
-    $("grid").hidden = true; $("dock").hidden = true; const pad = $("pad"), msg = $("padmsg"); pad.hidden = false;
-    const rts = []; let fs = 0, trial = 0, armed = false, goAt = 0, timer = null;
-    const next = () => {
-      if (trial >= mode.trials) { pad.onpointerdown = null; state.tests.reaction = D.reactionStats(rts, fs); return done(); }
-      armed = false; pad.className = "pad wait"; msg.textContent = `Wait for green  (${trial + 1} of ${mode.trials})`;
-      timer = setTimeout(() => { armed = true; goAt = performance.now(); pad.className = "pad go"; msg.textContent = "TAP"; }, 1500 + Math.random() * 2500);
-    };
-    pad.onpointerdown = (e) => {
-      e.preventDefault();
-      if (!armed) { clearTimeout(timer); fs++; pad.className = "pad early"; msg.textContent = "Too early"; return void setTimeout(next, 900); }
-      const rt = performance.now() - goAt; armed = false; rts.push(rt); trial++; pad.className = "pad done"; msg.textContent = `${Math.round(rt)} ms`; setTimeout(next, 800);
-    };
-    next();
-  }),
-  gonogo: async () => {
-    $("gtitle").textContent = "Attention test"; $("ghelp").textContent = "Tap when the panel is GREEN. Do nothing when it is RED.";
-    $("grid").hidden = true; $("dock").hidden = true; const pad = $("pad"), msg = $("padmsg"); pad.hidden = false; const trials = [], total = mode.trials * 2;
-    for (let i = 0; i < total; i++) {
-      pad.className = "pad done"; msg.textContent = `${i + 1} of ${total}`; await sleepMs(700 + Math.random() * 600);
-      const type = Math.random() < 0.3 ? "nogo" : "go", shown = performance.now(); let rt = null;
-      pad.className = type === "go" ? "pad go" : "pad early"; msg.textContent = type === "go" ? "TAP" : "WAIT";
-      pad.onpointerdown = (e) => { e.preventDefault(); if (rt === null) rt = performance.now() - shown; };
-      await sleepMs(900); pad.onpointerdown = null; trials.push({ type, responded: rt !== null, rt });
-    }
-    state.tests.gonogo = D.goNoGoStats(trials);
-  },
-  memory: async () => {
-    $("gtitle").textContent = "Memory test"; $("ghelp").textContent = "Watch the squares light up, then tap them in the same order.";
-    $("pad").hidden = true; $("dock").hidden = true; const grid = $("grid"); grid.hidden = false; grid.innerHTML = Array.from({ length: 9 }, (_, i) => `<button class="cell" data-i="${i}" aria-label="square ${i + 1}"></button>`).join("");
-    const cells = [...grid.children], attempts = []; let len = 3, fails = 0;
-    while (len <= 7 && fails < 2) {
-      const seq = Array.from({ length: len }, () => Math.floor(Math.random() * 9));
-      $("ghelp").textContent = `Watch (${len} squares)...`; await sleepMs(600);
-      for (const i of seq) { cells[i].classList.add("lit"); await sleepMs(450); cells[i].classList.remove("lit"); await sleepMs(200); }
-      $("ghelp").textContent = "Your turn.";
-      const correct = await new Promise((res) => { let k = 0; grid.onclick = (e) => { const i = Number(e.target.dataset?.i); if (Number.isNaN(i)) return; if (i !== seq[k]) { grid.onclick = null; return res(false); } k++; if (k === seq.length) { grid.onclick = null; res(true); } }; });
-      attempts.push({ length: len, correct }); if (correct) { len++; fails = 0; } else fails++;
-      $("ghelp").textContent = correct ? "Correct." : "Not quite."; await sleepMs(700);
-    }
-    state.tests.memory = D.memoryStats(attempts); grid.hidden = true;
-  },
-  docking: () => new Promise((done) => {
-    $("gtitle").textContent = "Docking"; $("ghelp").textContent = "Keep the crosshair on the docking port as the capsule closes in. Drag or move your finger on the panel.";
-    $("pad").hidden = true; $("grid").hidden = true; const c = $("dock"); c.hidden = false;
-    const x = c.getContext("2d"), S = (c.width = c.height = 360), dur = CONFIG.DOCKING_SECONDS, samples = [], ph = [0, 1, 2, 3].map(() => Math.random() * 6.28);
-    let px = 0.5, py = 0.5, start = null;
-    const move = (e) => { const r = c.getBoundingClientRect(); px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)); e.preventDefault(); };
-    c.onpointerdown = c.onpointermove = move;
-    const frame = (now) => {
-      if (start === null) start = now; const t = (now - start) / 1000, k = Math.min(1, t / dur), amp = 0.3 * (1 - 0.6 * k);      // drift settles as the capsule approaches
-      const tx = 0.5 + amp * (0.6 * Math.sin(0.9 * t + ph[0]) + 0.4 * Math.sin(2.3 * t + ph[1])), ty = 0.5 + amp * (0.6 * Math.cos(0.7 * t + ph[2]) + 0.4 * Math.sin(1.9 * t + ph[3]));
-      const err = Math.hypot(px - tx, py - ty), lock = err <= 0.08; if (t > 1) samples.push({ t, err });
-      x.fillStyle = "#050914"; x.fillRect(0, 0, S, S);
-      x.strokeStyle = lock ? "#4cd28a" : "#ffc66b"; x.lineWidth = 3; x.beginPath(); x.arc(tx * S, ty * S, 16 + 44 * k, 0, 6.283); x.stroke(); x.beginPath(); x.arc(tx * S, ty * S, 4, 0, 6.283); x.stroke();
-      x.strokeStyle = "#5fd0ff"; x.lineWidth = 2; x.beginPath(); x.moveTo(px * S - 16, py * S); x.lineTo(px * S + 16, py * S); x.moveTo(px * S, py * S - 16); x.lineTo(px * S, py * S + 16); x.stroke();
-      x.fillStyle = "#9aa6c4"; x.font = "16px system-ui"; x.fillText(`${Math.max(0, Math.round(200 * (1 - k)))} m`, 12, 24); x.fillText(lock ? "ALIGNED" : "ALIGN", S - 86, 24);
-      if (t < dur) requestAnimationFrame(frame); else { c.onpointerdown = c.onpointermove = null; c.hidden = true; state.tests.docking = D.dockingStats(samples); done(); }
-    };
-    requestAnimationFrame(frame);
-  }),
-};
+const syncMute = () => { $("mute").textContent = settings.sound ? "Sound on" : "Sound off"; $("mute").setAttribute("aria-pressed", String(!settings.sound)); };
+$("mute").addEventListener("click", () => { settings.sound = !settings.sound; store.set("halo_settings", settings); syncMute(); }); syncMute();
 
 // ------------------------------------------------------------------ results
 $("sleepform").addEventListener("submit", (e) => { e.preventDefault(); results(); });
@@ -414,9 +360,10 @@ function results() {
     (selfMood !== null ? "self-reported. " : "") + (scanned && ex.label ? `Expression estimate: ${ex.label} (valence ${ex.valence > 0 ? "+" : ""}${ex.valence}); smiling ${ex.shares.smiling}%, tense ${ex.shares.tense}%, frowning ${ex.shares.frowning}% of the scan. Reads the face, not the feeling.` : "No camera scan for an expression estimate."), selfMood !== null ? "live" : "experimental");
   if (taskHr !== null) h += row("Heart rate during the tests", `${Math.round(taskHr)} bpm`, record.heart_task_delta_bpm !== null ? `${record.heart_task_delta_bpm > 0 ? "+" : ""}${record.heart_task_delta_bpm} bpm against the resting scan` : "resting value not available", "experimental");
   if (recHr !== null) h += row("Heart rate after resting", `${Math.round(recHr)} bpm`, record.heart_recovery_delta_bpm !== null ? `${record.heart_recovery_delta_bpm > 0 ? "+" : ""}${record.heart_recovery_delta_bpm} bpm against the resting scan, after ${CONFIG.RECOVERY_SECONDS} s still` : "resting value not available", "experimental");
-  h += row("Reaction time", rx.median_ms ? `${rx.median_ms} ms` : "-", `${rx.lapses} slow response(s), ${rx.false_starts} early tap(s) in ${rx.trials} trials${vs("reaction_median_ms")}`, "live");
-  if (gng) h += row("Attention", gng.hit_rate_pct !== null ? `${gng.hit_rate_pct}%` : "-", `green taps caught; ${gng.false_alarms} tap(s) on red; median ${gng.median_rt_ms ?? "-"} ms`, "live");
+  h += row("Reaction time", rx.median_ms ? `${rx.median_ms} ms` : "-", `${rx.lapses} slow response(s), ${rx.false_starts} early tap(s)${rx.misses ? `, ${rx.misses} missed` : ""} in ${rx.trials} trials${vs("reaction_median_ms")}`, "live");
+  if (gng) h += row("Attention", gng.hit_rate_pct !== null ? `${gng.hit_rate_pct}%` : "-", `supply pods caught; ${gng.false_alarms} tap(s) on debris; median ${gng.median_rt_ms ?? "-"} ms`, "live");
   if (mem) h += row("Memory span", `${mem.span}`, `longest sequence repeated correctly, in ${mem.attempts} attempts`, "live");
+  if (state.tests.mission) h += row("Mission points", `${state.tests.mission.points}`, `best streak ${state.tests.mission.best_streak}. For fun only; not used in the readiness score.`, "live");
   if (dk && dk.mean_error_pct !== null) h += row("Docking", `${dk.mean_error_pct}%`, `average distance from the port; on target ${dk.time_on_target_pct}% of the time; ${dk.docked ? "docked" : "missed the port"}`, "live");
   h += row("Sleep last night", record.sleep_hours !== null ? `${record.sleep_hours} h` : "-", "self-reported", "live");
   if (record.heart_error_bpm !== null) h += row("Heart rate vs reference", `${record.heart_error_bpm > 0 ? "+" : ""}${record.heart_error_bpm} bpm`, `reference device read ${record.reference_heart_bpm} bpm`, "live");

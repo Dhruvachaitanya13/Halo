@@ -195,3 +195,13 @@ body:has(.stage.mini) main { padding-bottom: 150px }          /* keeps the previ
 
 [hidden] { display: none !important }          /* an element marked hidden stays hidden, whatever its own display rule says */
 @media (max-width: 420px) { .pad { font-size: 24px } }
+
+/* Docking mission (the thinking tests) */
+.ghead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 12px }
+.ghead h2 { margin: 0 }
+.eyebrow { font: 700 10.5px/1.4 var(--mono); letter-spacing: .8px; text-transform: uppercase; color: var(--blue); margin-bottom: 2px }
+button.chip { width: auto; margin: 0; padding: 7px 12px; font: 700 10.5px/1 var(--mono); letter-spacing: .5px; text-transform: uppercase; border-radius: 999px; flex: none }
+.mission { display: block; width: min(100%, calc(72vh * 360 / 460)); aspect-ratio: 360 / 460; margin: 0 auto; border-radius: var(--r); border: 1px solid var(--text); background: #04060c; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: crosshair; outline-offset: 3px }
+.ghelp { font-size: 14px; color: var(--dim); min-height: 42px; margin: 12px 0 6px }
+.ghelp { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; min-height: 0; margin: 0 }   /* the canvas shows the briefing; this copy is for screen readers */
+.mission + .ghelp + small { margin-top: 12px }
