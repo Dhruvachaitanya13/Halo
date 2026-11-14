@@ -85,7 +85,19 @@ summary { cursor: pointer; color: var(--dim); font: 12px/1.4 var(--mono); letter
 /* Camera stage (always dark: it sits on live video) */
 .stage { position: relative; border-radius: 8px; overflow: hidden; background: #000; aspect-ratio: 4/3; border: 1px solid var(--text) }
 .stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1) }
-.stage.mini { position: fixed; right: 10px; bottom: 10px; width: 96px; z-index: 5; box-shadow: 0 4px 16px rgba(0, 0, 0, .25) }
+/* Live camera while the tests run: a docked preview, bottom left */
+.stage.mini { position: fixed; z-index: 5; left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); width: 148px; border-radius: 10px; border: 2px solid var(--card); outline: 1px solid var(--line2); box-shadow: 0 8px 24px rgba(0, 0, 0, .28) }
+.stage.mini .hud { display: none }
+.stage.mini .rec { right: 6px; top: 6px; font-size: 9px; letter-spacing: .8px; padding: 4px 7px }
+.stage.mini .rec::before { width: 5px; height: 5px; margin-right: 4px }
+.stage.mini::after { content: "Camera on"; position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px; font: 700 9px/1 var(--mono); letter-spacing: .8px; text-transform: uppercase; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .7)); z-index: 2 }
+body:has(.stage.mini) main { padding-bottom: 150px }          /* keeps the preview off the last button on phones */
+@media (min-width: 1160px) {                                   /* wide screens: sit beside the content column, lined up with its left edge */
+  .stage.mini { width: 248px; left: auto; right: calc(50% + 300px + 8px); bottom: 32px }
+  .stage.mini::after { font-size: 10px; padding: 18px 10px 8px }
+  .stage.mini .rec { right: 8px; top: 8px; font-size: 10px; padding: 5px 9px }
+  body:has(.stage.mini) main { padding-bottom: 56px }
+}
 .hud { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; align-items: center; gap: 8px; background: rgba(10, 11, 13, .78); color: #fff; border-radius: 999px; padding: 5px 13px 5px 6px; font: 700 15px/1 var(--mono); font-variant-numeric: tabular-nums }
 .ring { width: 32px; height: 32px; transform: rotate(-90deg) }
 .ring circle { fill: none; stroke-width: 4 }
@@ -180,3 +192,6 @@ summary { cursor: pointer; color: var(--dim); font: 12px/1.4 var(--mono); letter
 .row > div:first-child { flex: 1 }
 .trend { text-align: right; align-self: center; flex: none }
 #prep { margin-top: 8px }
+
+[hidden] { display: none !important }          /* an element marked hidden stays hidden, whatever its own display rule says */
+@media (max-width: 420px) { .pad { font-size: 24px } }
