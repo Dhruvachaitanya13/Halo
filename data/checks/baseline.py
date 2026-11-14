@@ -4,8 +4,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_score, recall_score, roc_auc_score, average_precision_score, f1_score
-D=sys.argv[1]+"/"; c=json.load(open(D+"model_contract.json")); F=c["features"]; T=c["target"]
-tr=pd.read_csv(D+"radiation_model_train.csv",parse_dates=["timestamp"]); te=pd.read_csv(D+"radiation_model_test.csv",parse_dates=["timestamp"])
+# usage: python baseline.py DATA_DIRECTORY RESULTS.json [weather]   (add the word weather to use the weather variant)
+V="_weather" if len(sys.argv)>3 and sys.argv[3]=="weather" else ""
+D=sys.argv[1]+"/"; c=json.load(open(D+f"model_contract{V}.json")); F=c["features"]; T=c["target"]
+tr=pd.read_csv(D+f"radiation_model_train{V}.csv",parse_dates=["timestamp"]); te=pd.read_csv(D+f"radiation_model_test{V}.csv",parse_dates=["timestamp"])
 X=lambda d:d[F].astype(float).values
 # time-based validation inside training: fit on 1-19 May, validate on 20-24 May, with a 30-minute purge before the cut
 cut=pd.Timestamp("2024-05-20",tz="UTC"); fit=tr[tr.timestamp<cut-pd.Timedelta(minutes=30)]; val=tr[tr.timestamp>=cut]

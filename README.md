@@ -19,7 +19,7 @@ The camera only works over https, which GitHub Pages provides.
 | Folder | What it is | Status |
 |---|---|---|
 | `scan/` | The QR health check: camera heart rate, breathing, blinking, mood, the docking mission game (thinking tests, based on Kavya's Daily Dock), results. Plain HTML and JavaScript, no build step. | Runs. 26 unit tests. Not yet checked on a live person or on Safari. |
-| `data/` | The NASA-only dataset (Feature 3 package): ISS radiation in 5-minute bins with train and test tables, space weather events, Inspiration4 labs, a model contract, the build script and independent checks (`data/CHECKS.md`). | Checked and reproducible from `data/raw/`. First baseline: precision 0.93, recall 0.89 on the held-out days. |
+| `data/` | The NASA-only dataset (Feature 3 package): ISS radiation in 5-minute bins with train and test tables, space weather events, Inspiration4 labs, a model contract, the build script independent checks (`data/CHECKS.md`), and two optional variants: corrected labs and weather model inputs (`data/ADDITIONS.md`). | Checked and reproducible from `data/raw/`. First baseline: precision 0.93, recall 0.89 on the held-out days. |
 | `twilio/` | FastAPI bridge for text and voice alerts through Twilio. | Tested locally only. Not deployed. |
 | `docs/` | Team map. | |
 

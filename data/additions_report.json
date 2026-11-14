@@ -1,0 +1,44 @@
+{
+  "lab_correction_arithmetic_check": {
+    "absolute_neutrophils": {
+      "proposed": 6826.0,
+      "from_unshifted_values": 6825.6,
+      "agrees": true
+    },
+    "absolute_lymphocytes": {
+      "proposed": 1997.0,
+      "from_unshifted_values": 1996.8,
+      "agrees": true
+    },
+    "absolute_monocytes": {
+      "proposed": 614.0,
+      "from_unshifted_values": 614.4,
+      "agrees": true
+    },
+    "absolute_eosinophils": {
+      "proposed": 125.0,
+      "from_unshifted_values": 124.8,
+      "agrees": true
+    },
+    "mch": {
+      "proposed": 29.6,
+      "from_unshifted_values": 29.6,
+      "agrees": true
+    },
+    "mchc": {
+      "proposed": 32.4,
+      "from_unshifted_values": 32.4,
+      "agrees": true
+    }
+  },
+  "labs_corrected_rows": 3191,
+  "labs_corrected_blank_values": 1,
+  "weather_features": [
+    "wx_storm_report_active_6h",
+    "wx_kp_last_known_6h",
+    "wx_kp_max_known_24h",
+    "wx_hours_since_storm_kp",
+    "wx_particle_reports_known_24h",
+    "wx_hours_since_particle_report"
+  ]
+}

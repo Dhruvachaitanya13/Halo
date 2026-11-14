@@ -1,0 +1,59 @@
+{
+  "features": [
+    "dose_rate_ugy_h",
+    "dose_rate_max_ugy_h",
+    "latitude",
+    "longitude",
+    "altitude_km",
+    "n_samples",
+    "abs_latitude",
+    "lat_moving_north",
+    "in_saa_box",
+    "lon_sin",
+    "lon_cos",
+    "hour_utc",
+    "dose_rate_lag_5min",
+    "dose_rate_lag_10min",
+    "dose_rate_lag_15min",
+    "dose_rate_lag_30min",
+    "dose_rate_roll_median_1h",
+    "dose_rate_roll_max_1h",
+    "wx_storm_report_active_6h",
+    "wx_kp_last_known_6h",
+    "wx_kp_max_known_24h",
+    "wx_hours_since_storm_kp",
+    "wx_particle_reports_known_24h",
+    "wx_hours_since_particle_report"
+  ],
+  "target": "target_peak_within_30min",
+  "forecast_definition": "Any observed dose-rate bin > training-only threshold in the next 6 consecutive five-minute bins",
+  "peak_threshold_ugy_h": 11.60008,
+  "threshold_rule": "3 x median training dose rate",
+  "train_dates": [
+    "2024-05-01",
+    "2024-05-24"
+  ],
+  "test_dates": [
+    "2024-05-25",
+    "2024-05-30"
+  ],
+  "target_policy": "Exclude gaps and train/test-crossing windows",
+  "feature_timing": "Features available at end of current five-minute bin",
+  "weather_features_in_model": true,
+  "weather_reason": "Optional variant. A weather record is used only after both its observation time and the returned record's submission time; zero means no storm report in the feed, not Kp 0.",
+  "reported_prior_precision": 0.94,
+  "reported_prior_recall": 0.92,
+  "prior_metrics_status": "User-reported preliminary scores, not reproduced; cannot transfer to this cleaned split",
+  "lab_use": "Rules/reference only; no pooled clinical ML training",
+  "unit_caveat": "uGy absorbed dose rate; not personal effective dose or clinical exposure limit",
+  "weather_features": [
+    "wx_storm_report_active_6h",
+    "wx_kp_last_known_6h",
+    "wx_kp_max_known_24h",
+    "wx_hours_since_storm_kp",
+    "wx_particle_reports_known_24h",
+    "wx_hours_since_particle_report"
+  ],
+  "weather_caveat": "All storm and particle reports fall on 2-17 May 2024. The validation days (20-24 May) and test days (25-30 May) contain none, so these columns cannot be shown to help on held-out data.",
+  "base_contract": "model_contract.json"
+}
