@@ -1,0 +1,35 @@
+timestamp,event_type,value,detail,event_id
+2024-05-02 18:00:00,geomagnetic_storm_kp,6.67,G2 moderate,2024-05-02T15:00:00-GST-001
+2024-05-02 21:00:00,geomagnetic_storm_kp,6.67,G2 moderate,2024-05-02T15:00:00-GST-001
+2024-05-09 13:59:00,solar_energetic_particle_event,1.0,MODEL: REleASE:ACE/EPAM 15.8-39.8 MeV,2024-05-09T13:59:00-SEP-001
+2024-05-09 14:25:00,solar_energetic_particle_event,1.0,MODEL: REleASE:SOHO/EPHIN 15.8-39.8 MeV,2024-05-09T14:25:00-SEP-001
+2024-05-10 12:59:00,solar_energetic_particle_event,1.0,SOHO: COSTEP 15.8-39.8 MeV,2024-05-10T12:59:00-SEP-001
+2024-05-10 13:02:00,solar_energetic_particle_event,1.0,SOHO: COSTEP 28.2-50.1 MeV,2024-05-10T13:02:00-SEP-001
+2024-05-10 13:35:00,solar_energetic_particle_event,1.0,GOES-P: SEISS >10 MeV,2024-05-10T13:35:00-SEP-001
+2024-05-10 14:50:00,solar_energetic_particle_event,1.0,STEREO A: IMPACT 13-100 MeV,2024-05-10T14:50:00-SEP-001
+2024-05-10 18:00:00,geomagnetic_storm_kp,7.67,G3 strong,2024-05-10T15:00:00-GST-001
+2024-05-10 21:00:00,geomagnetic_storm_kp,8.67,G4 severe,2024-05-10T15:00:00-GST-001
+2024-05-11 00:00:00,geomagnetic_storm_kp,9.0,G5 extreme,2024-05-10T15:00:00-GST-001
+2024-05-11 02:10:00,solar_energetic_particle_event,1.0,GOES-P: SEISS >100 MeV,2024-05-11T02:10:00-SEP-001
+2024-05-11 03:00:00,geomagnetic_storm_kp,9.0,G5 extreme,2024-05-10T15:00:00-GST-001
+2024-05-11 04:07:00,solar_energetic_particle_event,1.0,STEREO A: IMPACT 13-100 MeV,2024-05-11T04:07:00-SEP-001
+2024-05-11 06:00:00,geomagnetic_storm_kp,8.33,G4 severe,2024-05-10T15:00:00-GST-001
+2024-05-11 09:00:00,geomagnetic_storm_kp,8.67,G4 severe,2024-05-10T15:00:00-GST-001
+2024-05-11 12:00:00,geomagnetic_storm_kp,9.0,G5 extreme,2024-05-10T15:00:00-GST-001
+2024-05-11 15:00:00,geomagnetic_storm_kp,8.67,G4 severe,2024-05-10T15:00:00-GST-001
+2024-05-11 18:00:00,geomagnetic_storm_kp,8.33,G4 severe,2024-05-10T15:00:00-GST-001
+2024-05-11 21:00:00,geomagnetic_storm_kp,7.33,G3 strong,2024-05-10T15:00:00-GST-001
+2024-05-12 00:00:00,geomagnetic_storm_kp,7.33,G3 strong,2024-05-10T15:00:00-GST-001
+2024-05-12 03:00:00,geomagnetic_storm_kp,6.67,G2 moderate,2024-05-10T15:00:00-GST-001
+2024-05-12 06:00:00,geomagnetic_storm_kp,7.0,G3 strong,2024-05-10T15:00:00-GST-001
+2024-05-13 00:00:00,geomagnetic_storm_kp,6.33,G2 moderate,2024-05-12T21:00:00-GST-001
+2024-05-13 03:00:00,geomagnetic_storm_kp,5.67,G1 minor,2024-05-12T21:00:00-GST-001
+2024-05-13 06:00:00,geomagnetic_storm_kp,6.0,G2 moderate,2024-05-12T21:00:00-GST-001
+2024-05-13 12:44:00,solar_energetic_particle_event,1.0,STEREO A: IMPACT 13-100 MeV,2024-05-13T12:44:00-SEP-001
+2024-05-13 13:10:00,solar_energetic_particle_event,1.0,MODEL: REleASE:SOHO/EPHIN 15.8-39.8 MeV,2024-05-13T13:10:00-SEP-001
+2024-05-13 14:00:00,solar_energetic_particle_event,1.0,GOES-P: SEISS >10 MeV,2024-05-13T14:00:00-SEP-001
+2024-05-13 16:19:00,solar_energetic_particle_event,1.0,MODEL: REleASE:ACE/EPAM 15.8-39.8 MeV,2024-05-13T16:19:00-SEP-001
+2024-05-13 18:07:00,solar_energetic_particle_event,1.0,SOHO: COSTEP 15.8-39.8 MeV,2024-05-13T18:07:00-SEP-001
+2024-05-13 18:07:00,solar_energetic_particle_event,1.0,SOHO: COSTEP 28.2-50.1 MeV,2024-05-13T18:07:00-SEP-002
+2024-05-16 09:00:00,geomagnetic_storm_kp,6.0,G2 moderate,2024-05-16T06:00:00-GST-001
+2024-05-17 21:00:00,geomagnetic_storm_kp,6.0,G2 moderate,2024-05-17T18:00:00-GST-001
