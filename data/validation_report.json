@@ -1,0 +1,31 @@
+{
+  "radiation_source_rows": 28761,
+  "radiation_valid_source_rows": 28761,
+  "radiation_5min_rows": 8627,
+  "missing_5min_bins": 13,
+  "contiguous_segments": 6,
+  "training_rows": 6797,
+  "test_rows": 1722,
+  "train_positive_labels": 1338,
+  "test_positive_labels": 315,
+  "space_weather_records": 34,
+  "weather_record_types": {
+    "geomagnetic_storm_kp_observation": 20,
+    "solar_particle_event_report": 14
+  },
+  "donki_parent_objects": {
+    "GST": 5,
+    "SEP": 14
+  },
+  "labs_rows": 3190,
+  "labs_unassessed_source_review": 9,
+  "labs_no_reference_bounds": 2128,
+  "source_sha256": {
+    "radlab_donki_2024-05.txt": "63f4a4fe3ad689f81abcdc8e8a5dc7b6a5360d4bd7d8a00ff82506482f67372c",
+    "radlab_2024-05_extra.txt": "fc93076df68c2999d823b60188d4ff2d0ba68728a8c98bb29213f03f75dab2f4",
+    "donki_2024-05_full.txt": "dca7d91e657a2ffd07b55eeeff5c3574c9aedf73712210364053863b7b9b6a53",
+    "inspiration4_labs_long_precorrection.csv": "879474b7b89e6568634c31e778cfaa10e6d58bbce025ca9b8bd4b72eb7783ef4"
+  },
+  "checks": "Passed counts, unique keys, observed timestamp lag alignment and complete model features",
+  "additional_checks": "All exported labels recomputed against actual six future timestamps; published lab values match uploaded source one-to-one"
+}

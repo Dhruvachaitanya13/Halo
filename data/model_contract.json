@@ -1,0 +1,43 @@
+{
+  "features": [
+    "dose_rate_ugy_h",
+    "dose_rate_max_ugy_h",
+    "latitude",
+    "longitude",
+    "altitude_km",
+    "n_samples",
+    "abs_latitude",
+    "lat_moving_north",
+    "in_saa_box",
+    "lon_sin",
+    "lon_cos",
+    "hour_utc",
+    "dose_rate_lag_5min",
+    "dose_rate_lag_10min",
+    "dose_rate_lag_15min",
+    "dose_rate_lag_30min",
+    "dose_rate_roll_median_1h",
+    "dose_rate_roll_max_1h"
+  ],
+  "target": "target_peak_within_30min",
+  "forecast_definition": "Any observed dose-rate bin > training-only threshold in the next 6 consecutive five-minute bins",
+  "peak_threshold_ugy_h": 11.60008,
+  "threshold_rule": "3 x median training dose rate",
+  "train_dates": [
+    "2024-05-01",
+    "2024-05-24"
+  ],
+  "test_dates": [
+    "2024-05-25",
+    "2024-05-30"
+  ],
+  "target_policy": "Exclude gaps and train/test-crossing windows",
+  "feature_timing": "Features available at end of current five-minute bin",
+  "weather_features_in_model": false,
+  "weather_reason": "Returned event versions lack verified historical publication availability; timeline only",
+  "reported_prior_precision": 0.94,
+  "reported_prior_recall": 0.92,
+  "prior_metrics_status": "User-reported preliminary scores, not reproduced; cannot transfer to this cleaned split",
+  "lab_use": "Rules/reference only; no pooled clinical ML training",
+  "unit_caveat": "uGy absorbed dose rate; not personal effective dose or clinical exposure limit"
+}

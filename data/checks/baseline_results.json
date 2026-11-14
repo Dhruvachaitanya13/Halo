@@ -1,0 +1,33 @@
+{
+ "logistic_regression": {
+  "threshold_from_validation": 0.73,
+  "validation_f1": 0.722,
+  "test_precision": 0.666,
+  "test_recall": 0.613,
+  "test_f1": 0.638,
+  "test_roc_auc": 0.911,
+  "test_average_precision": 0.685
+ },
+ "gradient_boosting": {
+  "threshold_from_validation": 0.57,
+  "validation_f1": 0.881,
+  "test_precision": 0.933,
+  "test_recall": 0.886,
+  "test_f1": 0.909,
+  "test_roc_auc": 0.991,
+  "test_average_precision": 0.969
+ },
+ "naive_current_bin_above_threshold": {
+  "test_precision": 0.652,
+  "test_recall": 0.232,
+  "test_f1": 0.342
+ },
+ "_meta": {
+  "train_rows": 6797,
+  "test_rows": 1722,
+  "test_positive_rate": 0.183,
+  "fit_rows": 5397,
+  "validation_rows": 1394,
+  "features": 18
+ }
+}

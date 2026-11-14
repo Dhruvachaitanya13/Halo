@@ -1,0 +1,199 @@
+file,field,dtype,missing_count,description
+inspiration4_baseline_summary.csv,astronaut_id,object,0,astronaut id
+inspiration4_baseline_summary.csv,panel,object,0,panel
+inspiration4_baseline_summary.csv,analyte,object,0,analyte
+inspiration4_baseline_summary.csv,unit,object,0,unit
+inspiration4_baseline_summary.csv,preflight_mean,float64,2,preflight mean
+inspiration4_baseline_summary.csv,preflight_sd,float64,4,preflight sd
+inspiration4_baseline_summary.csv,preflight_n,int64,0,preflight n
+inspiration4_baseline_summary.csv,postflight_available_n,int64,0,postflight available n
+inspiration4_baseline_summary.csv,largest_absolute_postflight_pct_change,float64,2,largest absolute postflight pct change
+inspiration4_baseline_summary.csv,last_timepoint,object,0,last timepoint
+inspiration4_baseline_summary.csv,last_value,float64,0,last value
+inspiration4_baseline_summary.csv,last_pct_change_from_preflight,float64,2,last pct change from preflight
+inspiration4_baseline_summary.csv,postflight_out_of_supplied_range_count,int64,0,postflight out of supplied range count
+inspiration4_baseline_summary.csv,data_context,object,0,data context
+inspiration4_labs_long.csv,crew_id,object,0,crew id
+inspiration4_labs_long.csv,sex,object,0,sex
+inspiration4_labs_long.csv,timepoint,object,0,timepoint
+inspiration4_labs_long.csv,timepoint_order,int64,0,timepoint order
+inspiration4_labs_long.csv,phase,object,0,phase
+inspiration4_labs_long.csv,days_from_launch,int64,0,days from launch
+inspiration4_labs_long.csv,panel,object,0,panel
+inspiration4_labs_long.csv,sample_type,object,0,sample type
+inspiration4_labs_long.csv,analyte,object,0,analyte
+inspiration4_labs_long.csv,analyte_label,object,0,analyte label
+inspiration4_labs_long.csv,value,float64,9,value
+inspiration4_labs_long.csv,unit,object,0,unit
+inspiration4_labs_long.csv,normal_low,float64,2128,normal low
+inspiration4_labs_long.csv,normal_high,float64,2184,normal high
+inspiration4_labs_long.csv,source_study,object,0,source study
+inspiration4_labs_long.csv,astronaut_id,object,0,astronaut id
+inspiration4_labs_long.csv,value_as_published,float64,0,value as published
+inspiration4_labs_long.csv,value_quality,object,0,value quality
+inspiration4_labs_long.csv,proposed_corrected_value,float64,3182,proposed corrected value
+inspiration4_labs_long.csv,preflight_mean,float64,5,preflight mean
+inspiration4_labs_long.csv,preflight_sd,float64,9,preflight sd
+inspiration4_labs_long.csv,preflight_n,int64,0,preflight n
+inspiration4_labs_long.csv,change_from_preflight,float64,14,change from preflight
+inspiration4_labs_long.csv,pct_change_from_preflight,float64,14,pct change from preflight
+inspiration4_labs_long.csv,z_from_preflight,float64,84,z from preflight
+inspiration4_labs_long.csv,reference_range_coverage,object,0,reference range coverage
+inspiration4_labs_long.csv,status,object,0,status
+inspiration4_labs_long.csv,baseline_quality,object,0,baseline quality
+inspiration4_labs_long.csv,data_context,object,0,data context
+inspiration4_labs_wide.csv,astronaut_id,object,0,astronaut id
+inspiration4_labs_wide.csv,sex,object,0,sex
+inspiration4_labs_wide.csv,timepoint,object,0,timepoint
+inspiration4_labs_wide.csv,timepoint_order,int64,0,timepoint order
+inspiration4_labs_wide.csv,phase,object,0,phase
+inspiration4_labs_wide.csv,days_from_launch,int64,0,days from launch
+inspiration4_labs_wide.csv,absolute_basophils,float64,1,absolute basophils
+inspiration4_labs_wide.csv,absolute_eosinophils,float64,1,absolute eosinophils
+inspiration4_labs_wide.csv,absolute_lymphocytes,float64,1,absolute lymphocytes
+inspiration4_labs_wide.csv,absolute_monocytes,float64,1,absolute monocytes
+inspiration4_labs_wide.csv,absolute_neutrophils,float64,1,absolute neutrophils
+inspiration4_labs_wide.csv,albumin,float64,0,albumin
+inspiration4_labs_wide.csv,albumin_globulin_ratio,float64,0,albumin globulin ratio
+inspiration4_labs_wide.csv,alkaline_phosphatase,float64,0,alkaline phosphatase
+inspiration4_labs_wide.csv,alt,float64,0,alt
+inspiration4_labs_wide.csv,ast,float64,0,ast
+inspiration4_labs_wide.csv,basophils,float64,0,basophils
+inspiration4_labs_wide.csv,bilirubin_total,float64,1,bilirubin total
+inspiration4_labs_wide.csv,bun_creatinine_ratio,float64,22,bun creatinine ratio
+inspiration4_labs_wide.csv,calcium,float64,0,calcium
+inspiration4_labs_wide.csv,carbon_dioxide,float64,0,carbon dioxide
+inspiration4_labs_wide.csv,chloride,float64,0,chloride
+inspiration4_labs_wide.csv,creatinine,float64,0,creatinine
+inspiration4_labs_wide.csv,egfr_african_american,float64,0,egfr african american
+inspiration4_labs_wide.csv,egfr_non_afr_american,float64,0,egfr non afr american
+inspiration4_labs_wide.csv,eosinophils,float64,0,eosinophils
+inspiration4_labs_wide.csv,globulin,float64,0,globulin
+inspiration4_labs_wide.csv,glucose,float64,0,glucose
+inspiration4_labs_wide.csv,hematocrit,float64,0,hematocrit
+inspiration4_labs_wide.csv,hemoglobin,float64,0,hemoglobin
+inspiration4_labs_wide.csv,lymphocytes,float64,0,lymphocytes
+inspiration4_labs_wide.csv,mch,float64,2,mch
+inspiration4_labs_wide.csv,mchc,float64,5,mchc
+inspiration4_labs_wide.csv,mcv,float64,1,mcv
+inspiration4_labs_wide.csv,monocytes,float64,0,monocytes
+inspiration4_labs_wide.csv,mpv,float64,1,mpv
+inspiration4_labs_wide.csv,neutrophils,float64,0,neutrophils
+inspiration4_labs_wide.csv,platelet_count,float64,1,platelet count
+inspiration4_labs_wide.csv,potassium,float64,0,potassium
+inspiration4_labs_wide.csv,protein_total,float64,0,protein total
+inspiration4_labs_wide.csv,rdw,float64,1,rdw
+inspiration4_labs_wide.csv,red_blood_cell_count,float64,0,red blood cell count
+inspiration4_labs_wide.csv,sodium,float64,0,sodium
+inspiration4_labs_wide.csv,urea_nitrogen_bun,float64,0,urea nitrogen bun
+inspiration4_labs_wide.csv,white_blood_cell_count,float64,0,white blood cell count
+labs_source_review.csv,astronaut_id,object,0,astronaut id
+labs_source_review.csv,timepoint,object,0,timepoint
+labs_source_review.csv,panel,object,0,panel
+labs_source_review.csv,analyte,object,0,analyte
+labs_source_review.csv,unit,object,0,unit
+labs_source_review.csv,value_as_published,float64,1,value as published
+labs_source_review.csv,proposed_corrected_value,float64,1,proposed corrected value
+labs_source_review.csv,value_quality,object,0,value quality
+radiation_5min.csv,row_id,int64,0,row id
+radiation_5min.csv,timestamp,object,0,timestamp
+radiation_5min.csv,dose_rate_ugy_h,float64,0,dose rate ugy h
+radiation_5min.csv,dose_rate_max_ugy_h,float64,0,dose rate max ugy h
+radiation_5min.csv,latitude,float64,0,latitude
+radiation_5min.csv,longitude,float64,0,longitude
+radiation_5min.csv,altitude_km,float64,0,altitude km
+radiation_5min.csv,n_samples,int64,0,n samples
+radiation_5min.csv,minutes_since_prev,float64,1,minutes since prev
+radiation_5min.csv,segment_id,int64,0,segment id
+radiation_5min.csv,abs_latitude,float64,0,abs latitude
+radiation_5min.csv,in_saa_box,bool,0,in saa box
+radiation_5min.csv,region,object,0,region
+radiation_5min.csv,lon_sin,float64,0,lon sin
+radiation_5min.csv,lon_cos,float64,0,lon cos
+radiation_5min.csv,hour_utc,int64,0,hour utc
+radiation_5min.csv,date,object,0,date
+radiation_5min.csv,split,object,0,split
+radiation_5min.csv,peak_threshold_ugy_h,float64,0,peak threshold ugy h
+radiation_5min.csv,is_peak,bool,0,is peak
+radiation_5min.csv,lat_moving_north,object,6,lat moving north
+radiation_5min.csv,dose_rate_lag_5min,float64,6,dose rate lag 5min
+radiation_5min.csv,dose_rate_lag_10min,float64,12,dose rate lag 10min
+radiation_5min.csv,dose_rate_lag_15min,float64,18,dose rate lag 15min
+radiation_5min.csv,dose_rate_lag_30min,float64,36,dose rate lag 30min
+radiation_5min.csv,dose_rate_roll_median_1h,float64,66,dose rate roll median 1h
+radiation_5min.csv,dose_rate_roll_max_1h,float64,66,dose rate roll max 1h
+radiation_5min.csv,target_dose_rate_plus_5min,float64,7,target dose rate plus 5min
+radiation_5min.csv,target_dose_rate_plus_15min,float64,21,target dose rate plus 15min
+radiation_5min.csv,target_dose_rate_plus_30min,float64,42,target dose rate plus 30min
+radiation_5min.csv,target_peak_within_30min,object,42,target peak within 30min
+radiation_5min.csv,target_window_complete,bool,0,target window complete
+radiation_5min.csv,dose_in_observed_bin_ugy,float64,0,dose in observed bin ugy
+radiation_5min.csv,observed_dose_accumulated_day_ugy,float64,0,observed dose accumulated day ugy
+radiation_5min.csv,daily_coverage_fraction,float64,0,daily coverage fraction
+radiation_5min.csv,source,object,0,source
+radiation_5min.csv,data_context,object,0,data context
+radiation_missing_bins.csv,timestamp,object,0,timestamp
+radiation_missing_bins.csv,n_samples,int64,0,n samples
+radiation_model_test.csv,row_id,int64,0,row id
+radiation_model_test.csv,timestamp,object,0,timestamp
+radiation_model_test.csv,dose_rate_ugy_h,float64,0,dose rate ugy h
+radiation_model_test.csv,dose_rate_max_ugy_h,float64,0,dose rate max ugy h
+radiation_model_test.csv,latitude,float64,0,latitude
+radiation_model_test.csv,longitude,float64,0,longitude
+radiation_model_test.csv,altitude_km,float64,0,altitude km
+radiation_model_test.csv,n_samples,int64,0,n samples
+radiation_model_test.csv,abs_latitude,float64,0,abs latitude
+radiation_model_test.csv,lat_moving_north,bool,0,lat moving north
+radiation_model_test.csv,in_saa_box,bool,0,in saa box
+radiation_model_test.csv,lon_sin,float64,0,lon sin
+radiation_model_test.csv,lon_cos,float64,0,lon cos
+radiation_model_test.csv,hour_utc,int64,0,hour utc
+radiation_model_test.csv,dose_rate_lag_5min,float64,0,dose rate lag 5min
+radiation_model_test.csv,dose_rate_lag_10min,float64,0,dose rate lag 10min
+radiation_model_test.csv,dose_rate_lag_15min,float64,0,dose rate lag 15min
+radiation_model_test.csv,dose_rate_lag_30min,float64,0,dose rate lag 30min
+radiation_model_test.csv,dose_rate_roll_median_1h,float64,0,dose rate roll median 1h
+radiation_model_test.csv,dose_rate_roll_max_1h,float64,0,dose rate roll max 1h
+radiation_model_test.csv,target_peak_within_30min,bool,0,target peak within 30min
+radiation_model_train.csv,row_id,int64,0,row id
+radiation_model_train.csv,timestamp,object,0,timestamp
+radiation_model_train.csv,dose_rate_ugy_h,float64,0,dose rate ugy h
+radiation_model_train.csv,dose_rate_max_ugy_h,float64,0,dose rate max ugy h
+radiation_model_train.csv,latitude,float64,0,latitude
+radiation_model_train.csv,longitude,float64,0,longitude
+radiation_model_train.csv,altitude_km,float64,0,altitude km
+radiation_model_train.csv,n_samples,int64,0,n samples
+radiation_model_train.csv,abs_latitude,float64,0,abs latitude
+radiation_model_train.csv,lat_moving_north,bool,0,lat moving north
+radiation_model_train.csv,in_saa_box,bool,0,in saa box
+radiation_model_train.csv,lon_sin,float64,0,lon sin
+radiation_model_train.csv,lon_cos,float64,0,lon cos
+radiation_model_train.csv,hour_utc,int64,0,hour utc
+radiation_model_train.csv,dose_rate_lag_5min,float64,0,dose rate lag 5min
+radiation_model_train.csv,dose_rate_lag_10min,float64,0,dose rate lag 10min
+radiation_model_train.csv,dose_rate_lag_15min,float64,0,dose rate lag 15min
+radiation_model_train.csv,dose_rate_lag_30min,float64,0,dose rate lag 30min
+radiation_model_train.csv,dose_rate_roll_median_1h,float64,0,dose rate roll median 1h
+radiation_model_train.csv,dose_rate_roll_max_1h,float64,0,dose rate roll max 1h
+radiation_model_train.csv,target_peak_within_30min,bool,0,target peak within 30min
+radiation_rejected_rows.csv,timestamp,object,0,timestamp
+radiation_rejected_rows.csv,instrument_id,object,0,instrument id
+radiation_rejected_rows.csv,absorbed_dose_rate,object,0,absorbed dose rate
+radiation_rejected_rows.csv,altitude,object,0,altitude
+radiation_rejected_rows.csv,latitude,object,0,latitude
+radiation_rejected_rows.csv,longitude,object,0,longitude
+radiation_rejected_rows.csv,module,object,0,module
+space_weather_events.csv,source,object,0,source
+space_weather_events.csv,source_query_url,object,0,source query url
+space_weather_events.csv,event_id,object,0,event id
+space_weather_events.csv,event_url,object,0,event url
+space_weather_events.csv,record_submission_time_utc,object,0,record submission time utc
+space_weather_events.csv,version_id,int64,0,version id
+space_weather_events.csv,data_context,object,0,data context
+space_weather_events.csv,availability_caveat,object,0,availability caveat
+space_weather_events.csv,timestamp,object,0,timestamp
+space_weather_events.csv,event_type,object,0,event type
+space_weather_events.csv,value,float64,0,value
+space_weather_events.csv,unit,object,0,unit
+space_weather_events.csv,detail,object,0,detail
+space_weather_events.csv,parent_event_start_utc,object,0,parent event start utc

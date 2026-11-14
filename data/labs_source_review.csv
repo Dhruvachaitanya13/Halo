@@ -1,0 +1,11 @@
+astronaut_id,timepoint,panel,analyte,unit,value_as_published,proposed_corrected_value,value_quality
+I4_C003,L-92,blood_count,absolute_basophils,cells/uL,125.0,,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,absolute_eosinophils,cells/uL,614.0,125.0,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,absolute_lymphocytes,cells/uL,6826.0,1997.0,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,absolute_monocytes,cells/uL,1997.0,614.0,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,absolute_neutrophils,cells/uL,10.1,6826.0,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,mchc,g/dL,29.6,32.4,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,mpv,fL,330.0,10.1,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,platelet_count,Thousand/uL,12.9,330.0,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,rdw,%,32.4,12.9,suspected_row_shift_excluded_pending_review
+I4_C003,L-92,blood_count,mch,pg,,29.6,not_present_in_source_proposed_in_prior_script
