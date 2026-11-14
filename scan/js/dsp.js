@@ -105,6 +105,7 @@ export function verticalShift(ref, cur, maxShift = 6) {
 export function estimateBreathing(t, d, { fs = 10, minSeconds = 20, lo = 0.1, hi = 0.6 } = {}) {
   const seconds = t.length ? t[t.length - 1] - t[0] : 0;
   if (seconds < minSeconds) return { brpm: null, quality: 0, seconds, reason: "need_more_time" };
+  if (t.length / seconds < 2) return { brpm: null, quality: 0, seconds, reason: "too_few_samples" };      // under 2 readings a second cannot show a breath reliably
   const x = bandpass(resample(t, d, fs), fs, lo, hi);
   const { freq, quality } = dominantFrequency(x, fs, lo, hi, 0.25 / 60);
   return { brpm: Math.round(freq * 600) / 10, quality: Math.round(quality * 100) / 100, seconds: Math.round(seconds * 10) / 10 };
@@ -253,7 +254,8 @@ export function estimateHeartRateAdvanced(regions, { fs = 30, method = "auto", m
     if (mean(samples.map((s) => s.g)) < 5) continue;
     for (const m of methods) {
       const pulse = pulseFrom(samples, { fs, method: m }), { freq, quality } = dominantFrequency(pulse, fs, 0.7, 3.0);
-      candidates.push({ region, method: m, bpm: Math.round(freq * 600) / 10, quality: Math.round(quality * 100) / 100, pulse });
+      const edge = freq <= 0.7 + 0.04 || freq >= 3.0 - 0.04;             // a peak on the edge of the band is drift or flicker, not a pulse
+      candidates.push({ region, method: m, bpm: Math.round(freq * 600) / 10, quality: edge ? 0 : Math.round(quality * 100) / 100, pulse });
     }
   }
   if (!candidates.length) return { bpm: null, quality: 0, confidence: 0, reason: "need_more_time_or_light", candidates: [] };

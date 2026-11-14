@@ -157,3 +157,20 @@ New theme ("Flight chart"). Nothing in the measurement code changed.
 - The camera stage and the docking game stay dark on purpose (live video, space scene).
 - The theme is an original design. It follows published guidance for clinical interfaces (high contrast, tabular figures, restrained colour, light and dark modes); it does not copy any site and uses no NASA logo or branding.
 - Checked: 24 unit tests, no duplicate ids, and the full simulated flow (consent, scan, test, questions, results) in headless Chromium at phone size in light and dark. Not checked: Safari on a real phone, or any reading on a live person.
+
+## Version 0.8
+
+Heart rate was often "signal too weak" on real use. Cause and fix:
+
+- **Cause.** Skin colour was read only on frames the face tracker had finished. On Safari the tracker runs on the CPU and takes 50-150 ms a frame, so the pulse signal had roughly 7-15 samples a second. The pulse is a brightness change of under 1%, and at that rate it is lost in camera noise.
+- **Fix.** Skin colour is now read on every camera frame (`requestVideoFrameCallback`), independent of the tracker, using the last face position. The tracker runs at most half of the time so camera frames are not blocked.
+- The face box is smoothed, so tracker jitter no longer slides the measured regions across the skin. A quarter second of samples is dropped after a head movement.
+- A peak on the edge of the search band (42 or 180 bpm) is treated as drift and rejected.
+- Heart rate during the tests and after resting is shown only when the resting scan itself worked and the short-window signal is clearly good. Before, a value such as "52 bpm after resting" could appear while the resting value was missing.
+- When the heart signal is too weak the result now says why: signal quality, colour samples per second, and what to change (light, movement, frame rate).
+- Breathing is not reported from fewer than 2 readings a second.
+- The diagnostics line under the scan shows the number of colour samples.
+
+Checked: 26 unit tests. A simulation with a weak pulse and realistic noise gave a correct, reported value in 5 of 40 runs at 8 samples/s, 9 of 40 at 15, and 35 of 40 at 30. A full scan in headless Chromium with the real face tracker on a video of a still portrait whose skin tone was modulated at 72 bpm returned 72 bpm, although the tracker there managed only 16 frames in 27 s. That modulation (about 1%) is stronger than a real pulse.
+
+Not checked: a live person, or Safari. Camera heart rate still needs even front light and a still head; in dim room light on a laptop camera it can honestly fail, and the app will say so rather than guess.

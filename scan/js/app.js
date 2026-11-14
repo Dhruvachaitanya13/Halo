@@ -6,7 +6,7 @@ const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.7.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.8.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -79,7 +79,7 @@ tracker.then(() => ($("prep").textContent = "Scanner ready."), () => { if (!para
 let started = false, watch = null;
 const waitFor = (test, ms) => new Promise((res) => { const t0 = performance.now(), iv = setInterval(() => { if (test()) { clearInterval(iv); res(true); } else if (performance.now() - t0 > ms) { clearInterval(iv); res(false); } }, 100); });
 function showDiag(video) {
-  $("diag").textContent = `v${APP_VERSION} | frames ${dbg.frames} | faces ${dbg.faces} | ${Math.round(dbg.ms)} ms per frame | video ${video?.videoWidth || 0}x${video?.videoHeight || 0} ready ${video?.readyState ?? "-"} | source ${dbg.src} | ${dbg.delegate} | errors ${dbg.errors}${dbg.lastErr ? " (" + dbg.lastErr + ")" : ""}`;
+  $("diag").textContent = `v${APP_VERSION} | frames ${dbg.frames} | faces ${dbg.faces} | ${Math.round(dbg.ms)} ms per frame | colour samples ${dbg.samples || 0} | video ${video?.videoWidth || 0}x${video?.videoHeight || 0} ready ${video?.readyState ?? "-"} | source ${dbg.src} | ${dbg.delegate} | errors ${dbg.errors}${dbg.lastErr ? " (" + dbg.lastErr + ")" : ""}`;
 }
 window.addEventListener("error", (e) => { dbg.errors++; dbg.lastErr = String(e.message || e).slice(0, 80); showDiag($("video")); });
 window.addEventListener("unhandledrejection", (e) => { if (e.reason?.message === "demo") return; dbg.errors++; dbg.lastErr = String(e.reason?.message || e.reason).slice(0, 80); showDiag($("video")); });
@@ -106,6 +106,7 @@ async function startScan() {
   const W = 320, H = Math.round((W * video.videoHeight) / video.videoWidth) || 240; work.width = W; work.height = H;
   const view = $("roicanvas"), vctx = view.getContext("2d"); view.width = W; view.height = H;
   let t0 = null, lastT = 0, lastCy = null, chestRef = null, chestBase = 0, lastChest = -1, lastEst = 0;
+  let box = null, boxAt = 0, holdUntil = 0, lastMedia = -1;          // smoothed face box from the tracker, used by the per-frame colour sampler
   running = true; setStatus("Looking for your face..."); showDiag(video);
   await new Promise(requestAnimationFrame);                                   // let the screen update before the first, slowest detection
   const onErr = (e) => {                                                       // a failed frame must never stop the scan silently
@@ -141,10 +142,32 @@ async function startScan() {
     return { p: out.map((v, i) => v / (cnt[i] || 1)), scale: h / rows };
   };
 
+  // ---- Skin colour is sampled on EVERY camera frame, not only on frames the face tracker has finished.
+  // The tracker can take 50-150 ms per frame (Safari runs it on the CPU), which used to leave the pulse
+  // signal with 7-15 samples a second. The pulse is a brightness change of well under 1%, so it needs every frame.
+  const regionsOf = (b) => ({ forehead: [b.x + 0.3 * b.w, b.y + 0.08 * b.h, 0.4 * b.w, 0.14 * b.h], left: [b.x + 0.14 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h], right: [b.x + 0.64 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h] });
+  const sampleSkin = (now) => {
+    if (!running || t0 === null || !box || now - boxAt > 600 || now < holdUntil) return;      // no recent face, or the head just moved
+    wctx.drawImage(video, 0, 0, W, H);
+    const t = (now - t0) / 1000; let R = 0, G = 0, B = 0, N = 0;
+    for (const [name, q] of Object.entries(regionsOf(box))) {
+      const a = avg(...q); if (!a) continue;
+      R += a.r * a.n; G += a.g * a.n; B += a.b * a.n; N += a.n; state.roi[name].push({ t, r: a.r, g: a.g, b: a.b });
+    }
+    if (N) { state.roi.all.push({ t, r: R / N, g: G / N, b: B / N }); state.light.push(G / N); dbg.samples = (dbg.samples || 0) + 1; }
+  };
+  if (video.requestVideoFrameCallback) {                                     // one call per new camera frame, with no duplicates
+    const onFrame = (now) => { if (!running) return; try { sampleSkin(now); } catch (e) { onErr(e); } video.requestVideoFrameCallback(onFrame); };
+    video.requestVideoFrameCallback(onFrame);
+  } else {
+    const onRaf = (now) => { if (!running) return; if (video.currentTime !== lastMedia) { lastMedia = video.currentTime; try { sampleSkin(now); } catch (e) { onErr(e); } } requestAnimationFrame(onRaf); };
+    requestAnimationFrame(onRaf);
+  }
+
   const tick = () => {
     if (!running) return;
     const now = performance.now();
-    if (now - lastT >= Math.max(30, 1.5 * dbg.ms) && video.readyState >= 2 && video.videoWidth > 0) {
+    if (now - lastT >= Math.max(45, 2 * dbg.ms) && video.readyState >= 2 && video.videoWidth > 0) {   // leaves at least half of the time free for the colour sampler
       lastT = now; state.frames++;
       wctx.drawImage(video, 0, 0, W, H);
       const d0 = performance.now(), res = landmarker.detectForVideo(dbg.src === "canvas" ? work : video, now), lm = res.faceLandmarks?.[0];
@@ -159,14 +182,16 @@ async function startScan() {
         state.faceFrames++; state.frameT.push(t); state.faceFrac.push(fh / H); if (moved) state.motionFrames++;
         state.headT.push(t); state.headY.push((sy / lm.length) * 1000);          // head height, averaged over 478 points: rises and falls with each breath
         // three skin regions as fractions of the face box; each is stored on its own and pooled
-        const boxes = { forehead: [x0 + 0.3 * fw, y0 + 0.08 * fh, 0.4 * fw, 0.14 * fh], left: [x0 + 0.14 * fw, y0 + 0.5 * fh, 0.22 * fw, 0.18 * fh], right: [x0 + 0.64 * fw, y0 + 0.5 * fh, 0.22 * fw, 0.18 * fh] };
-        let R = 0, G = 0, B = 0, N = 0;
-        for (const [name, q] of Object.entries(boxes)) {
+        // The box is smoothed so that tracker jitter does not slide the regions across the skin (which looks like a pulse to the maths).
+        const jump = !box || Math.abs(x0 - box.x) > 0.15 * fw || Math.abs(y0 - box.y) > 0.15 * fh, k = jump ? 1 : 0.25;
+        box = jump ? { x: x0, y: y0, w: fw, h: fh } : { x: box.x + k * (x0 - box.x), y: box.y + k * (y0 - box.y), w: box.w + k * (fw - box.w), h: box.h + k * (fh - box.h) };
+        boxAt = now; if (moved || jump) holdUntil = now + 250;                  // drop a quarter second of colour samples after a head movement
+        const boxes = regionsOf(box);
+        let G = 0, N = 0;
+        for (const q of Object.values(boxes)) {
           const a = avg(...q); if (settings.overlay) { vctx.strokeStyle = "#5fd0ff"; vctx.strokeRect(...q); }
-          if (!a) continue; R += a.r * a.n; G += a.g * a.n; B += a.b * a.n; N += a.n;
-          if (!moved) state.roi[name].push({ t, r: a.r, g: a.g, b: a.b });
+          if (a) { G += a.g * a.n; N += a.n; }
         }
-        if (N) { state.light.push(G / N); if (!moved) state.roi.all.push({ t, r: R / N, g: G / N, b: B / N }); }
         const cats = res.faceBlendshapes?.[0]?.categories || [], sc = (name) => cats.find((c) => c.categoryName === name)?.score ?? 0;
         state.blinkT.push(t); state.blinkC.push((sc("eyeBlinkLeft") + sc("eyeBlinkRight")) / 2); state.jaw.push(sc("jawOpen")); state.lastT = t;
         const pair = (n) => (sc(n + "Left") + sc(n + "Right")) / 2;
@@ -300,7 +325,7 @@ function results() {
   const breathing = D.estimateBreathingMulti([...breathSources(scanEnd), ...(fromBeats?.brpm ? [{ name: "heartbeat", estimate: fromBeats }] : [])], { Q }), bstats = D.breathStats(ct, cd);
   const blink = D.blinkStats(bt, bc), yawns = D.countEvents(bt, state.jaw.slice(0, bt.length), 0.55, 1200);
   const ex = D.moodEstimate(state.expr.filter((e) => e.t < scanEnd)), dk = state.tests.docking || null, selfMood = num("mood");
-  const phase = (a, b) => { const h = D.estimateHeartRateAdvanced(D.slicePhase(state.roi, a, b), { method: settings.method, Q }); return h.bpm && h.quality >= Q ? h.bpm : null; };
+  const phase = (a, b) => { if (!ok(heart)) return null; const h = D.estimateHeartRateAdvanced(D.slicePhase(state.roi, a, b), { method: settings.method, Q }); return h.bpm && h.quality >= Math.max(Q, 0.5) && h.track.coverage >= 0.5 ? h.bpm : null; };   // short windows: only reported when the resting scan worked and the signal is clearly good
   const taskHr = scanned && state.tTestsEnd !== null && settings.keepCamera ? phase(scanEnd, state.tTestsEnd) : null, recHr = scanned && state.tTestsEnd !== null && settings.keepCamera ? phase(state.tTestsEnd, Infinity) : null;
   const rx = state.tests.reaction || D.reactionStats([]), gng = state.tests.gonogo || null, mem = state.tests.memory || null;
   const span = state.frameT.length > 1 ? state.frameT[state.frameT.length - 1] - state.frameT[0] : 0;
@@ -378,7 +403,9 @@ function results() {
   $("verdict").textContent = { ready: "Ready", caution: "Caution", rest: "Rest advised" }[record.verdict]; $("verdict").className = `verdict ${record.verdict}`;
   $("score").innerHTML = score.score === null ? "" : `<div class="scoreline"><b>Readiness score ${score.score}</b> / 100</div>` +
     Object.entries(score.parts).map(([k, v]) => `<div class="part"><span>${k}</span><div class="pbar"><i style="width:${v}%"></i></div><span>${v}</span></div>`).join("");
-  let h = row("Heart rate", record.heart_bpm ? `${Math.round(record.heart_bpm)} bpm` : "-", ok(heart) ? `${sig(heart.quality)}, confidence ${Math.round(heart.confidence * 100)}%; range ${Math.round(heart.track.min ?? heart.bpm)}-${Math.round(heart.track.max ?? heart.bpm)}; ${heart.method.toUpperCase()} on ${heart.region}${vs("heart_bpm")}` : sig(heart.quality), "live");
+  const hrSpan = restRoi.all.length > 1 ? restRoi.all[restRoi.all.length - 1].t - restRoi.all[0].t : 0, hrRate = hrSpan ? Math.round(restRoi.all.length / hrSpan) : 0, lightMean = state.light.length ? D.mean(state.light) : 0;
+  const hrTip = hrRate && hrRate < 20 ? "The camera delivered too few frames; close other tabs and add light." : lightMean < 70 ? "The face was too dark; face a window or a lamp." : lightMean > 200 ? "The face was over-exposed; move away from direct light." : state.motionFrames / Math.max(1, state.faceFrames) > 0.1 ? "There was too much head movement; rest your elbows and keep still." : "Use even light from the front, keep still and do not talk; laptop cameras in room light are often too noisy.";
+  let h = row("Heart rate", record.heart_bpm ? `${Math.round(record.heart_bpm)} bpm` : "-", ok(heart) ? `${sig(heart.quality)}, confidence ${Math.round(heart.confidence * 100)}%; range ${Math.round(heart.track.min ?? heart.bpm)}-${Math.round(heart.track.max ?? heart.bpm)}; ${heart.method.toUpperCase()} on ${heart.region}${vs("heart_bpm")}` : scanned ? `signal too weak, not reported (quality ${Math.round(heart.quality * 100)}%, needs ${Math.round(Q * 100)}%; ${hrRate} colour samples/s). ${hrTip}` : sig(0), "live");
   if (hrv) h += row("Beat-to-beat variation", `${hrv.rmssd_ms} ms`, `RMSSD from ${hrv.beats} beats; SDNN ${hrv.sdnn_ms} ms. Camera timing is coarse.`, "experimental");
   h += row("Breathing rate", breathing.brpm ? `${Math.round(breathing.brpm)} /min` : "-", breathing.brpm ? `${sig(breathing.quality)}; from ${breathing.source}${breathing.agree ? " (both agree)" : breathing.agree === false ? " (methods disagreed)" : ""}${vs("breathing_brpm")}` : sig(breathing.quality), "experimental");
   h += row("Blink rate", scanned && blink.blink_rate_per_min !== null ? `${blink.blink_rate_per_min} /min` : "-", scanned ? `eyes closed ${blink.perclos_pct ?? "-"}% of the time; ${blink.long_closures} long closure(s); ${yawns} yawn(s)${vs("blink_rate_per_min")}` : sig(0), "live");

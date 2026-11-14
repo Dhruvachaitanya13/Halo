@@ -243,3 +243,17 @@ test("mood: positive, tense, low and neutral faces, relative to the person's res
   assert.equal(stern.label, "neutral");
   assert.equal(moodEstimate([]).label, null);
 });
+
+import * as D from "../js/dsp.js";
+test("heart rate: a peak on the edge of the search band is rejected", () => {
+  const mk = (hz) => Array.from({ length: 30 * 30 }, (_, i) => { const t = i / 30, p = Math.sin(2 * Math.PI * hz * t); return { t, r: 150 + 0.15 * p, g: 110 + 0.6 * p, b: 90 + 0.27 * p }; });
+  const drift = D.estimateHeartRateAdvanced({ all: mk(0.7) }), real = D.estimateHeartRateAdvanced({ all: mk(1.2) });
+  assert.equal(drift.quality, 0);
+  assert.ok(Math.abs(real.bpm - 72) < 2 && real.quality > 0.6);
+});
+
+test("breathing: too few readings per second gives no value", () => {
+  const t = Array.from({ length: 20 }, (_, i) => i * 1.5), d = t.map((v) => Math.sin(2 * Math.PI * 0.13 * v));
+  const b = D.estimateBreathing(t, d);
+  assert.equal(b.brpm, null); assert.equal(b.reason, "too_few_samples");
+});
