@@ -192,3 +192,20 @@ The thinking tests are now one game, the **docking mission** (`js/mission.js`). 
 - On touch the crosshair is dragged like a trackpad, so the finger does not cover the target.
 - Changes that affect comparison with earlier checks: the memory stage has 6 ports (was 9 squares), and a missed reaction cue now counts as a miss instead of waiting forever. Records carry `tests.mission.game_version: 2`.
 - Checked: an automated player completed the full mission at phone size with no errors and the results page showed the expected values; Space and touch-drag input were checked separately. Not checked: play on a real phone, sound, or vibration.
+
+## Version 0.10
+
+Based on the first scan saved from a real device (heart rate missing, face tracker at 7 frames a second).
+
+- **Pulse first on slow devices.** When the face tracker needs more than about 28 ms a frame (typical for Safari), the first 60% of the scan gives the pulse priority: the tracker only refreshes the face position 2.5 times a second and every camera frame goes to the colour sampler. The rest of the scan runs the tracker at full speed to time blinks. Blink rate then comes from that second part only, and resting heart rate from the first part. Fast devices do both throughout, as before.
+- **Chest movement is sampled with the camera frames**, not with the tracker, so breathing does not degrade when the tracker is slow.
+- **Signal quality now accounts for short recordings.** With few independent frequency bins (a short recording or the narrow breathing band), noise alone often looks like a peak. The score uses Fisher's test so that 0.35 always means "noise would do this less than 5% of the time". Before this, a still photograph could return a breathing rate with "good signal".
+- **Verdict rule.** "Rest advised" now needs two performance or drowsiness flags, or a readiness score under 50. Three mild flags used to be enough, which gave "Rest advised" next to a score of 73.
+- **Diagnostics are saved with each scan** (`details.diagnostics`): tracker time per frame, colour samples per second, whether the scan was phased, mean brightness. The scan-quality note now reports pulse samples per second instead of tracker frames.
+- Checked: 27 unit tests; a full scan in headless Chromium with the real face tracker on the 72 bpm test video. Not checked: Safari, or a live person. The phased scan is designed for Safari and has only run in Chromium.
+
+## Version 0.11
+
+- Each real scan is also sent to the HALO agent (`POST {AGENT_URL}/api/v1/scan` as `{crew_id, record}`) when `AGENT_URL` is set in `js/config.js`. The results page shows the agent's answer, for example "Baseline building (1/3)". Simulated runs are never sent. A link with `?crew=LIVE_02` files the scan under that crew id.
+- The agent must be on https for phones to reach it from the live page. `http://localhost` only works for a browser on the same computer.
+- Checked: a full scan in headless Chromium reached a locally running agent, which accepted it and listed the crew. Not checked: against a deployed agent.

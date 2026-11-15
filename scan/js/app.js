@@ -7,7 +7,7 @@ const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.9.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.11.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -23,7 +23,7 @@ const params = new URLSearchParams(location.search);
 const sessionId = params.get("s") || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 const settings = { ...CONFIG.DEFAULTS, ...store.get("halo_settings", {}) };
 const state = { roi: { forehead: [], left: [], right: [], all: [] }, blinkT: [], blinkC: [], jaw: [], chestT: [], chestD: [], light: [], frameT: [],
-                frames: 0, faceFrames: 0, motionFrames: 0, faceFrac: [], tests: {}, headT: [], headY: [], expr: [], phase: "scan", lastT: 0, tScanEnd: null, tTestsEnd: null };
+                frames: 0, faceFrames: 0, motionFrames: 0, faceFrac: [], tests: {}, headT: [], headY: [], expr: [], phase: "scan", lastT: 0, tScanEnd: null, tTestsEnd: null, blinkFrom: null, phased: false };
 const live = { blinks: 0, closed: false, jaw: false, locked: false, said: {} };
 let stream = null, landmarker = null, running = false, mode = CONFIG.MODES[settings.mode] || CONFIG.MODES.standard;
 
@@ -107,7 +107,7 @@ async function startScan() {
   const W = 320, H = Math.round((W * video.videoHeight) / video.videoWidth) || 240; work.width = W; work.height = H;
   const view = $("roicanvas"), vctx = view.getContext("2d"); view.width = W; view.height = H;
   let t0 = null, lastT = 0, lastCy = null, chestRef = null, chestBase = 0, lastChest = -1, lastEst = 0;
-  let box = null, boxAt = 0, holdUntil = 0, lastMedia = -1;          // smoothed face box from the tracker, used by the per-frame colour sampler
+  let box = null, boxAt = 0, holdUntil = 0, lastMedia = -1, pulseFirst = false;          // smoothed face box from the tracker, used by the per-frame colour sampler
   running = true; setStatus("Looking for your face..."); showDiag(video);
   await new Promise(requestAnimationFrame);                                   // let the screen update before the first, slowest detection
   const onErr = (e) => {                                                       // a failed frame must never stop the scan silently
@@ -148,9 +148,20 @@ async function startScan() {
   // signal with 7-15 samples a second. The pulse is a brightness change of well under 1%, so it needs every frame.
   const regionsOf = (b) => ({ forehead: [b.x + 0.3 * b.w, b.y + 0.08 * b.h, 0.4 * b.w, 0.14 * b.h], left: [b.x + 0.14 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h], right: [b.x + 0.64 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h] });
   const sampleSkin = (now) => {
-    if (!running || t0 === null || !box || now - boxAt > 600 || now < holdUntil) return;      // no recent face, or the head just moved
+    if (!running || t0 === null || !box || now - boxAt > 1200) return;                          // no recent face
     wctx.drawImage(video, 0, 0, W, H);
     const t = (now - t0) / 1000; let R = 0, G = 0, B = 0, N = 0;
+    if (t - lastChest >= 0.1) {                                     // chest rows below the chin, about 10 times a second
+      lastChest = t;
+      const prof = rowProfile(box.x - 0.3 * box.w, box.y + 1.12 * box.h, 1.6 * box.w, 0.9 * box.h);        // neck, shoulders and upper chest
+      if (prof) {
+        if (!chestRef) chestRef = prof.p;
+        const sft = D.verticalShift(chestRef, prof.p, 4), big = Math.abs(sft) > 3;
+        if (big) { chestBase += sft; chestRef = prof.p; }           // re-anchor after a large movement
+        state.chestT.push(t); state.chestD.push((chestBase + (big ? 0 : sft)) * prof.scale);
+      }
+    }
+    if (now < holdUntil) return;                                     // the head just moved: skip skin colour for a moment
     for (const [name, q] of Object.entries(regionsOf(box))) {
       const a = avg(...q); if (!a) continue;
       R += a.r * a.n; G += a.g * a.n; B += a.b * a.n; N += a.n; state.roi[name].push({ t, r: a.r, g: a.g, b: a.b });
@@ -168,7 +179,13 @@ async function startScan() {
   const tick = () => {
     if (!running) return;
     const now = performance.now();
-    if (now - lastT >= Math.max(45, 2 * dbg.ms) && video.readyState >= 2 && video.videoWidth > 0) {   // leaves at least half of the time free for the colour sampler
+    // A slow face tracker (over about 28 ms a frame, typical for Safari) blocks camera frames while it runs. On such devices the first 60% of the scan
+    // gives the pulse priority: the tracker only refreshes the face position 2.5 times a second and every camera frame goes to the colour sampler.
+    // The rest of the scan runs the tracker at full speed to time blinks. Fast devices do both throughout.
+    if (dbg.frames === 8 && state.phase === "scan" && dbg.ms > 28 && !pulseFirst) { pulseFirst = true; state.phased = true; ui.log("Slow face tracking on this device: measuring pulse first, then blinks"); }
+    const tNow = t0 === null ? 0 : (now - t0) / 1000, pulsePhase = pulseFirst && state.phase === "scan" && tNow < 0.6 * mode.scan;
+    if (pulseFirst && !pulsePhase && state.blinkFrom === null) { state.blinkFrom = tNow; ui.log("Pulse captured. Now timing blinks."); }
+    if (now - lastT >= (pulsePhase ? 400 : Math.max(45, 2 * dbg.ms)) && video.readyState >= 2 && video.videoWidth > 0) {   // leaves at least half of the time free for the colour sampler
       lastT = now; state.frames++;
       wctx.drawImage(video, 0, 0, W, H);
       const d0 = performance.now(), res = landmarker.detectForVideo(dbg.src === "canvas" ? work : video, now), lm = res.faceLandmarks?.[0];
@@ -197,23 +214,13 @@ async function startScan() {
         state.blinkT.push(t); state.blinkC.push((sc("eyeBlinkLeft") + sc("eyeBlinkRight")) / 2); state.jaw.push(sc("jawOpen")); state.lastT = t;
         const pair = (n) => (sc(n + "Left") + sc(n + "Right")) / 2;
         state.expr.push({ t, smile: pair("mouthSmile"), frown: pair("mouthFrown"), furrow: pair("browDown"), raise: sc("browInnerUp"), press: pair("mouthPress"), squint: pair("eyeSquint"), wide: pair("eyeWide"), jaw: sc("jawOpen") });
-        if (t - lastChest >= 0.1) {                                     // chest rows below the chin, about 10 times a second
-          lastChest = t;
-          const cq = [x0 - 0.3 * fw, y1 + 0.12 * fh, 1.6 * fw, 0.9 * fh], prof = rowProfile(...cq);        // neck, shoulders and upper chest
-          if (prof) {
-            if (settings.overlay) { vctx.strokeStyle = "#ffc66b"; vctx.strokeRect(...cq); }
-            if (!chestRef) chestRef = prof.p;
-            const sft = D.verticalShift(chestRef, prof.p, 4), big = Math.abs(sft) > 3;
-            if (big) { chestBase += sft; chestRef = prof.p; }           // re-anchor after a large movement
-            state.chestT.push(t); state.chestD.push((chestBase + (big ? 0 : sft)) * prof.scale);
-          }
-        }
+        if (settings.overlay) { vctx.strokeStyle = "#ffc66b"; vctx.strokeRect(box.x - 0.3 * box.w, box.y + 1.12 * box.h, 1.6 * box.w, 0.9 * box.h); }
         if (state.phase === "scan") {
           const left = Math.max(0, mode.scan - t), light = N ? G / N : 0, closed = state.blinkC[state.blinkC.length - 1] >= 0.5, jaw = state.jaw[state.jaw.length - 1] >= 0.55;
           ui.ring(t / mode.scan, Math.ceil(left)); ui.once("face", "Face found. Measuring.");
           ui.step("face", "ok", "Face found"); ui.step("light", light < 40 || light > 235 ? "bad" : "ok", light < 40 ? "Too dark" : light > 235 ? "Too bright" : "Lighting good"); ui.step("still", moved ? "bad" : "ok", moved ? "Hold still" : "Holding still");
-          setStatus(light < 40 ? "Too dark. Face a window or a lamp." : light > 235 ? "Too bright. Move away from direct light." : fh / H < 0.22 ? "Move a little closer." : moved ? "Hold still." : "Good. Keep still and breathe normally.");
-          if (closed && !live.closed) live.blinks++; live.closed = closed;
+          setStatus(light < 40 ? "Too dark. Face a window or a lamp." : light > 235 ? "Too bright. Move away from direct light." : fh / H < 0.22 ? "Move a little closer." : moved ? "Hold still." : pulsePhase ? "Measuring your pulse. Keep still and breathe normally." : "Good. Keep still and breathe normally.");
+          if (!pulsePhase && closed && !live.closed) live.blinks++; live.closed = closed;
           if (jaw && !live.jaw) ui.log("Mouth opened wide (possible yawn)"); live.jaw = jaw;
           if (t - lastEst >= 1) { lastEst = t; ui.live(t); }
           if (left <= 0) { ui.log("Scan complete"); endScanPhase(); }
@@ -263,19 +270,20 @@ const num = (id) => { const v = $(id).value; return v === "" ? null : Number(v);
 
 function results() {
   const scanned = state.faceFrames > 0, ok = (m) => m && m.quality >= Q, r1 = (v) => (typeof v === "number" ? Math.round(v * 10) / 10 : null);
-  const scanEnd = state.tScanEnd ?? Infinity, restRoi = D.slicePhase(state.roi, 0, scanEnd), inScan = (t) => t < scanEnd;
-  const bt = state.blinkT.filter(inScan), bc = state.blinkC.slice(0, bt.length), ct = state.chestT.filter(inScan), cd = state.chestD.slice(0, ct.length);
+  const scanEnd = state.tScanEnd ?? Infinity, restRoi = D.slicePhase(state.roi, 0, state.blinkFrom ?? scanEnd), inScan = (t) => t < scanEnd;
+  const bi0 = state.blinkFrom === null ? 0 : state.blinkT.findIndex((t) => t >= state.blinkFrom), bi1 = state.blinkT.filter(inScan).length, bt = bi0 < 0 ? [] : state.blinkT.slice(bi0, bi1), bc = bi0 < 0 ? [] : state.blinkC.slice(bi0, bi1), ct = state.chestT.filter(inScan), cd = state.chestD.slice(0, ct.length);
   const heart = scanned ? D.estimateHeartRateAdvanced(restRoi, { method: settings.method, Q }) : { bpm: null, quality: 0, confidence: 0, candidates: [] };
   const chest = D.estimateBreathing(ct, cd);
   const fromBeats = ok(heart) && heart.beats?.valid && heart.quality >= 0.6 ? D.estimateBreathingFromBeats(heart.beats.beat_times) : null;
   const breathing = D.estimateBreathingMulti([...breathSources(scanEnd), ...(fromBeats?.brpm ? [{ name: "heartbeat", estimate: fromBeats }] : [])], { Q }), bstats = D.breathStats(ct, cd);
-  const blink = D.blinkStats(bt, bc), yawns = D.countEvents(bt, state.jaw.slice(0, bt.length), 0.55, 1200);
+  const blink = D.blinkStats(bt, bc), yawns = D.countEvents(bt, bi0 < 0 ? [] : state.jaw.slice(bi0, bi1), 0.55, 1200);
   const ex = D.moodEstimate(state.expr.filter((e) => e.t < scanEnd)), dk = state.tests.docking || null, selfMood = num("mood");
   const phase = (a, b) => { if (!ok(heart)) return null; const h = D.estimateHeartRateAdvanced(D.slicePhase(state.roi, a, b), { method: settings.method, Q }); return h.bpm && h.quality >= Math.max(Q, 0.5) && h.track.coverage >= 0.5 ? h.bpm : null; };   // short windows: only reported when the resting scan worked and the signal is clearly good
   const taskHr = scanned && state.tTestsEnd !== null && settings.keepCamera ? phase(scanEnd, state.tTestsEnd) : null, recHr = scanned && state.tTestsEnd !== null && settings.keepCamera ? phase(state.tTestsEnd, Infinity) : null;
   const rx = state.tests.reaction || D.reactionStats([]), gng = state.tests.gonogo || null, mem = state.tests.memory || null;
   const span = state.frameT.length > 1 ? state.frameT[state.frameT.length - 1] - state.frameT[0] : 0;
-  const quality = D.scanQuality({ fps: span ? state.frameT.length / span : null, motion_pct: scanned ? (state.motionFrames / state.faceFrames) * 100 : null,
+  const cSpan = restRoi.all.length > 1 ? restRoi.all[restRoi.all.length - 1].t - restRoi.all[0].t : 0, colourRate = cSpan ? restRoi.all.length / cSpan : null;
+  const quality = D.scanQuality({ fps: colourRate, motion_pct: scanned ? (state.motionFrames / state.faceFrames) * 100 : null,
     brightness: state.light.length ? D.mean(state.light) : null, face_frac: state.faceFrac.length ? D.median(state.faceFrac) : null, heart_quality: scanned ? heart.quality : null });
   const hrv = ok(heart) && heart.quality >= 0.6 && heart.beats?.valid ? heart.beats : null;
   const record = {
@@ -335,9 +343,9 @@ function results() {
   const trends = { "Reaction time": D.trendLabel(series("reaction_median_ms"), { higherIsBetter: false }), "Docking error": D.trendLabel(series("docking_error_pct"), { higherIsBetter: false }),
                    "Memory span": D.trendLabel(series("memory_span")), "Readiness score": D.trendLabel([...hist.map((hh) => hh.readiness_score), score.score]) };
   const alertFlags = a.flags.filter((f) => /eye|slow|early|yawn|red|memory/.test(f)).length;
-  record.verdict = a.flags.length === 0 ? "ready" : alertFlags >= 2 || a.flags.length >= 3 ? "rest" : "caution";
+  record.verdict = a.flags.length === 0 ? "ready" : alertFlags >= 2 || (score.score !== null && score.score < 50) ? "rest" : "caution";      // "rest" needs two performance or drowsiness flags, or a low score
   record.readiness_score = score.score; record.flags = a.flags; record.notes = a.notes;
-  record.details = { score_parts: score.parts, deviations: dev, scan_issues: quality.issues, candidates: heart.candidates, heart_series: heart.track?.series ?? [],
+  record.details = { diagnostics: { tracker_ms: Math.round(dbg.ms), tracker_frames: dbg.frames, colour_samples_per_s: colourRate === null ? null : Math.round(colourRate * 10) / 10, delegate: dbg.delegate, safari: SAFARI, phased: state.phased, light_mean: state.light.length ? Math.round(D.mean(state.light)) : null }, score_parts: score.parts, deviations: dev, scan_issues: quality.issues, candidates: heart.candidates, heart_series: heart.track?.series ?? [],
                      breathing: { chest, from_beats: fromBeats, agree: breathing.agree, estimates: breathing.estimates, ...bstats }, tests: state.tests, settings: { ...settings },
                      expression: ex, ml: { model: "isolation forest", windows: moments.trained_on, moments: moments.moments, check: anomaly }, trends };
 
@@ -377,7 +385,7 @@ function results() {
     `<p>Against your earlier checks: ${anomaly.score === null ? `needs ${anomaly.needed} earlier checks on this device; you have ${anomaly.n}.` : `score ${anomaly.score} (highest earlier check ${anomaly.highest_earlier_score}): ${anomaly.unusual ? "unlike your earlier checks." : "within your usual pattern."}`}</p>`;
 
   store.set("halo_history", [...hist, Object.fromEntries(["created_at", ...Object.keys(KEYS), "perclos_pct", "memory_span", "docking_error_pct", "readiness_score"].map((k) => [k, record[k]]))].slice(-40));
-  show("results"); save(record);
+  show("results"); save(record); sendToAgent(record);
   const dl = (name, text, type) => { const u = URL.createObjectURL(new Blob([text], { type })); Object.assign(document.createElement("a"), { href: u, download: name }).click(); URL.revokeObjectURL(u); };
   $("download").onclick = () => dl(`halo-scan-${sessionId.slice(0, 8)}.json`, JSON.stringify(record, null, 2), "application/json");
   $("csv").onclick = () => dl(`halo-heart-series-${sessionId.slice(0, 8)}.csv`, "seconds,bpm,quality\n" + (heart.track?.series ?? []).map((p) => `${p.t},${p.bpm},${p.quality}`).join("\n"), "text/csv");
@@ -393,6 +401,19 @@ function drawSeries(series) {
   good.forEach((p, i) => { const px = 50 + (p.t / T) * (W - 60), py = H - ((p.bpm - lo) / (hi - lo)) * (H - 20) - 10; i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
 }
 
+// The HALO agent (teammate's FastAPI service) scores the scan against this crew member's own baseline. Simulated runs are never sent.
+async function sendToAgent(record) {
+  const el = $("agentmsg");
+  if (state.simulated || !CONFIG.AGENT_URL) { el.hidden = true; return; }
+  el.hidden = false; el.textContent = "Sending to the HALO agent...";
+  try {
+    const r = await fetch(`${CONFIG.AGENT_URL.replace(/\/$/, "")}/api/v1/scan`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ crew_id: params.get("crew") || CONFIG.AGENT_CREW || "LIVE_01", record }) });
+    const j = await r.json().catch(() => null);
+    el.textContent = r.ok ? `Sent to the HALO agent as ${j?.crew_id ?? "crew"}. ${j?.duplicate ? "It already had this scan. " : ""}${j?.score?.baseline_building?.label ?? `Agent status: ${j?.score?.status ?? "not available"}`}.`
+                          : `The HALO agent did not accept the scan (answer ${r.status}).`;
+  } catch { el.textContent = "The HALO agent could not be reached. Your results are still saved."; }
+}
 async function save(record) {
   const el = $("saved");
   if (state.simulated) { el.textContent = "Simulated run: nothing was saved."; return; }

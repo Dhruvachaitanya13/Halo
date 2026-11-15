@@ -10,7 +10,7 @@ In the Twilio console, on your phone number set:
        "A message comes in"  -> POST {PUBLIC_BASE_URL}/twilio/sms
        "A call comes in"     -> POST {PUBLIC_BASE_URL}/twilio/voice
 
-Two functions are stubs for the team to replace: ask_agent() and current_status().
+ask_agent() and current_status() are provided by twilio_bridge.py, which talks to the HALO agent.
 """
 import os
 from fastapi import FastAPI, Form, HTTPException, Request, Response
@@ -29,16 +29,11 @@ VALIDATE = os.getenv("TWILIO_VALIDATE", "1") != "0"
 SMS_LIMIT = 300                      # keep texts short; long replies are cut with a pointer to the app
 
 
-# ----------------------------------------------------------------- stubs to replace
-def ask_agent(text: str, mode: str = "question", sender: str = "") -> str:
-    """Call the HALO agent. mode: 'question' | 'emergency' | 'daily_report'."""
-    return f"HALO received: {text[:120]}. (Agent not connected yet.)"
-
-
-def current_status() -> dict:
-    """Latest overall status from the database / model."""
-    return {"level": "normal", "summary": "All monitored values are in range. No radiation peak predicted in the next 30 minutes."}
-
+# ----------------------------------------------------------------- HALO agent connection
+# ask_agent(text, mode, sender) and current_status() come from the HALO agent's bridge module (agent/halo_agent/integrations/twilio_bridge.py,
+# copied here as twilio_bridge.py; standard library only). It calls the agent over HTTP at HALO_AGENT_URL (default http://127.0.0.1:8001)
+# and returns a safe fixed reply if the agent cannot be reached.
+from twilio_bridge import ask_agent, current_status  # noqa: E402
 
 # ----------------------------------------------------------------- helpers
 def client() -> Client:

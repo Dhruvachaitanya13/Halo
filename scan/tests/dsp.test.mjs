@@ -257,3 +257,12 @@ test("breathing: too few readings per second gives no value", () => {
   const b = D.estimateBreathing(t, d);
   assert.equal(b.brpm, null); assert.equal(b.reason, "too_few_samples");
 });
+
+test("breathing: noise on a still chest is not reported as a breathing rate", () => {
+  let seed = 3; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+  let reported = 0;
+  for (let k = 0; k < 40; k++) { const t = Array.from({ length: 180 }, (_, i) => i * 0.1), d = t.map(() => Math.round(rnd() * 2 - 1) * 0.5); const b = D.estimateBreathing(t, d, { minSeconds: 15 }); if (b.brpm !== null && b.quality >= 0.35) reported++; }
+  assert.ok(reported <= 4, `noise passed the quality bar in ${reported} of 40 runs`);
+  const t = Array.from({ length: 300 }, (_, i) => i * 0.1), real = D.estimateBreathing(t, t.map((v) => Math.sin(2 * Math.PI * 0.25 * v) + 0.3 * (rnd() - 0.5)));
+  assert.ok(Math.abs(real.brpm - 15) < 1 && real.quality >= 0.6);
+});

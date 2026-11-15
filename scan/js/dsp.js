@@ -55,7 +55,12 @@ export function dominantFrequency(x, fs, fmin, fmax, step = 0.5 / 60) {
   const total = pow.reduce((s, v) => s + v, 0) || 1e-12;
   const half = Math.max(1, Math.round(1.2 / (n / fs) / step));          // main-lobe half width in grid steps
   let peak = 0; for (let i = Math.max(0, p - half); i <= Math.min(pow.length - 1, p + half); i++) peak += pow[i];
-  return { freq: freqs[p], quality: Math.min(1, peak / total) };
+  // How much of the band's power must sit in the peak before it counts as a signal depends on how many independent frequency bins the band
+  // holds (K). With few bins (a short recording, or the narrow breathing band) noise alone often puts half the power in its largest bin.
+  // Fisher's test gives the share that noise exceeds only 5% of the time: g = 1 - (0.05 / K)^(1 / (K - 1)). The score is scaled so that
+  // 0.35 always means "passes that test" (and never less strict than a 0.35 share, which is what it meant before for the heart band).
+  const share = Math.min(1, peak / total), K = Math.max(2, pow.length / (2 * half + 1)), g = Math.max(0.35, 1 - Math.pow(0.05 / K, 1 / (K - 1)));
+  return { freq: freqs[p], quality: share <= g ? (0.35 * share) / g : 0.35 + (0.65 * (share - g)) / (1 - g) };
 }
 
 /** POS pulse extraction from uniformly sampled mean skin colour. Returns the pulse waveform. */
@@ -340,7 +345,7 @@ export function deviation(value, base, minN = 3) {
 /** Grade the recording itself, so a weak scan is reported as weak rather than as a health finding. */
 export function scanQuality({ fps, motion_pct, brightness, face_frac, heart_quality }) {
   const issues = [];
-  if (fps !== null && fps < 20) issues.push(`low frame rate (${Math.round(fps)} per second)`);
+  if (fps !== null && fps < 20) issues.push(`few pulse samples (${Math.round(fps)} per second)`);
   if (motion_pct !== null && motion_pct > 15) issues.push(`movement in ${Math.round(motion_pct)}% of frames`);
   if (brightness !== null && brightness < 60) issues.push("dim lighting"); else if (brightness !== null && brightness > 225) issues.push("overexposed");
   if (face_frac !== null && face_frac < 0.25) issues.push("face small in the frame");
