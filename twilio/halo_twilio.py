@@ -211,7 +211,31 @@ async def voice_answer(request: Request):
     return xml(v)
 
 
+# ----------------------------------------------------------------- point the Twilio number at this service
+def point_number_at_halo() -> str:
+    """Set the HALO number's "a call comes in" and "a message comes in" webhooks to this service, using the account's own credentials.
+    Runs once when the service starts, so nobody has to edit the number in the Twilio console. Set HALO_AUTOCONFIGURE=0 to switch it off."""
+    if os.getenv("HALO_AUTOCONFIGURE", "1") == "0":
+        return "switched off"
+    if not (SID and TOKEN and FROM and BASE):
+        return "skipped: Twilio variables or PUBLIC_BASE_URL not set"
+    try:
+        found = Client(SID, TOKEN).incoming_phone_numbers.list(phone_number=FROM, limit=1)
+        if not found:
+            return "failed: TWILIO_FROM_NUMBER is not a number in this Twilio account"
+        voice, sms = BASE + "/twilio/voice", BASE + "/twilio/sms"
+        if found[0].voice_url == voice and found[0].sms_url == sms:
+            return "already set"
+        found[0].update(voice_url=voice, voice_method="POST", sms_url=sms, sms_method="POST")
+        return "set"
+    except Exception as e:                       # wrong token, network, permissions: report it on /health, never crash the service
+        return "failed: " + str(e)[:160]
+
+
+WEBHOOKS = point_number_at_halo()
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "assistant": True, "twilio_configured": bool(SID and TOKEN and FROM), "browser_calling": bool(SID and API_KEY and API_SECRET and TWIML_APP),
-            "mission_control_numbers": len(CONTROL), "signature_check": VALIDATE}
+            "number_webhooks": WEBHOOKS, "mission_control_numbers": len(CONTROL), "signature_check": VALIDATE}

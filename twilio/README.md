@@ -29,7 +29,7 @@ Every number comes from the HALO agent or the HALO database in that same request
 ## Add text messages and phone calls (Twilio)
 
 1. In the Twilio console, get a phone number with SMS and Voice.
-2. On that number set "A message comes in" to `POST {address}/twilio/sms` and "A call comes in" to `POST {address}/twilio/voice`.
+2. Nothing to edit on the number: when the service starts with the Twilio variables and `PUBLIC_BASE_URL` set, it points the number's call and message webhooks at itself. `/health` shows the result under `number_webhooks`. (To do it by hand instead: "A message comes in" `POST {address}/twilio/sms`, "A call comes in" `POST {address}/twilio/voice`, and set `HALO_AUTOCONFIGURE=0`.)
 3. Add variables on Railway: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `MISSION_CONTROL_NUMBERS` for alerts.
 4. A trial account can only text and call numbers you have verified in the console, and plays a trial notice before each call.
 
