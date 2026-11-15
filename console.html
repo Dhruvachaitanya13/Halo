@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO Crew Control</title><meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.17.0">
+<title>HALO Crew Control</title><meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.18.0">
 <style>
   .head { margin: 18px 0 14px } .head h1 { font: 700 21px/1.2 var(--sans) } .head p { margin: 2px 0 0; font-size: 15px; color: var(--body) }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line2); margin-right: 6px; vertical-align: 1px } .dot.ok { background: var(--green) } .dot.bad { background: var(--red) }
@@ -94,8 +94,8 @@
 <p id="err" class="warn" hidden></p>
 </main>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.17.0";
-import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.17.0";
+import { CONFIG } from "./scan/js/config.js?v=0.18.0";
+import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.18.0";
 const API = (new URLSearchParams(location.search).get("agent") || CONFIG.AGENT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id), el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const call = async (path, body, method) => {
@@ -164,7 +164,7 @@ async function loadCrew() {
     const list = (host, title, items) => { host.replaceChildren(); if (!items?.length) return; host.append(el("h3", title)); const ul = el("ul"); items.forEach((t) => ul.append(el("li", t))); host.append(ul); };
     list($("rwatch"), "Watch items", r.watch_items); list($("rrec"), "Recommendations", r.recommendations);
     const e = r.environment_context; $("renv").textContent = e ? `${e.label}: ${e.dose_day_ugy} µGy on ${e.reference_date}, ${e.level}. ${e.is_personal_dose ? "" : "Cabin reference, not a personal dose. "}Forecast: ${e.prediction}.` : "Not available.";
-    $("rnote").textContent = `${r.disclaimer || ""} Summary written by: ${r.summary_generated_by === "llm" ? "language model, checked against the data" : "fixed template"}.`;
+    $("rnote").textContent = `${r.disclaimer || ""}${r.summary_generated_by === "llm" ? " Summary written by a language model and checked against the data." : ""}`;
   } catch (e) { $("reportcard").hidden = true; }
   try {
     const { nudges } = await call(`/api/v1/crew/${encodeURIComponent(crew)}/nudges`); $("nudgecard").hidden = !nudges?.length; $("nudges").replaceChildren();
@@ -192,10 +192,10 @@ async function finish(outcome) { try { showSos(await call(`/api/v1/sos/${session
 for (const a of ["done", "cannot_do", "condition_changed", "skip"]) $("a-" + a).onclick = () => act(a);
 $("resolve").onclick = () => finish("resolved"); $("handoff").onclick = () => finish("handed_off");
 $("askform").onsubmit = async (ev) => { ev.preventDefault(); const q = $("askq").value.trim(); if (!q || !session) return;
-  try { const r = await call("/api/v1/agent/ask", { question: q, session_id: session.session_id }); $("answer").hidden = false; $("answer").textContent = r.answer + (r.answered_by === "fixed_reply" ? " (fixed reply: the language model is not switched on for this agent)" : ""); voice.say(r.answer); } catch (e) { fail(e); } };
+  try { const r = await call("/api/v1/agent/ask", { question: q, session_id: session.session_id }); $("answer").hidden = false; $("answer").textContent = r.answer + (r.answered_by === "fixed_reply" ? "" : ""); voice.say(r.answer); } catch (e) { fail(e); } };
 
 async function init() {
-  if (!API) { $("conn").textContent = "No agent address is set in scan/js/config.js (AGENT_URL)."; $("dot").className = "dot bad"; return; }
+  if (!API) { $("conn").textContent = "HALO is not connected."; $("dot").className = "dot bad"; return; }
   try { const h = await call("/healthz"); $("dot").className = "dot ok"; $("online").className = "stepno"; $("onlinetext").textContent = "Online"; $("conn").textContent = `HALO agent connected (${h.mode})`; }
   catch { $("dot").className = "dot bad"; $("onlinetext").textContent = "Offline"; $("conn").textContent = "The HALO agent cannot be reached right now."; $("crews").replaceChildren(); return; }
   const types = await call("/api/v1/sos/problem-types");

@@ -1,13 +1,13 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js?v=0.17.0";
-import * as D from "./dsp.js?v=0.17.0";
-import { runMission } from "./mission.js?v=0.17.0";
+import { CONFIG } from "./config.js?v=0.18.0";
+import * as D from "./dsp.js?v=0.18.0";
+import { runMission } from "./mission.js?v=0.18.0";
 const cssv = (n) => getComputedStyle(document.querySelector(".sheet") || document.documentElement).getPropertyValue(n).trim(); // every canvas and bar sits on a white surface, so read the colours as they are there // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.17.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.18.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -461,7 +461,7 @@ function results() {
   $("grade").textContent = scanned ? `Scan quality ${quality.grade}${quality.issues.length ? ": " + quality.issues.join(", ") : ": no issues"}` : "";
   drawSeries(heart.track?.series ?? []);
   $("trends").innerHTML = Object.entries(trends).map(([k, v]) => `<div class="row"><div><b>${k}</b><small>${v.change_pct === null ? `${v.n} check(s) so far; needs 4` : `${v.change_pct > 0 ? "+" : ""}${v.change_pct}% across the last ${v.n} checks`}</small></div><div class="val trend ${v.label.split(" ")[0]}">${v.label}</div></div>`).join("");
-  $("ml").innerHTML = (scanned ? `<p>Within this scan: an isolation forest was fitted to ${moments.trained_on} two-second windows.</p><ul>${moments.moments.length ? moments.moments.map((m) => `<li>at ${m.t} s: ${m.driver} unusually ${m.direction} (score ${m.score})</li>`).join("") : `<li>${moments.reason || "No unusual moments found."}</li>`}</ul>` : "<p>No camera scan in this session.</p>") +
+  $("ml").innerHTML = (scanned ? `<p>Within this scan, HALO looked at ${moments.trained_on} two-second windows for anything out of pattern.</p><ul>${moments.moments.length ? moments.moments.map((m) => `<li>at ${m.t} s: ${m.driver} unusually ${m.direction} (score ${m.score})</li>`).join("") : `<li>${moments.reason || "No unusual moments found."}</li>`}</ul>` : "<p>No camera scan in this session.</p>") +
     `<p>Against your earlier checks: ${anomaly.score === null ? `needs ${anomaly.needed} earlier checks on this device; you have ${anomaly.n}.` : `score ${anomaly.score} (highest earlier check ${anomaly.highest_earlier_score}): ${anomaly.unusual ? "unlike your earlier checks." : "within your usual pattern."}`}</p>`;
 
   store.set("halo_history", [...hist, Object.fromEntries(["created_at", ...Object.keys(KEYS), "perclos_pct", "memory_span", "docking_error_pct", "readiness_score"].map((k) => [k, record[k]]))].slice(-40));

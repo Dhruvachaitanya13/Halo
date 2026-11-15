@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Talk to HALO</title><meta name="theme-color" content="#ffffff"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.17.0">
+<title>Talk to HALO</title><meta name="theme-color" content="#ffffff"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.18.0">
 <style>
   html, body { height: 100% } main { display: flex; flex-direction: column; height: 100dvh; padding-bottom: 12px }
   .wordmark { font-size: 25px } .tools { display: flex; gap: 10px; flex: none }
@@ -56,7 +56,7 @@
   <div class="ch on" id="ch-chat"><div><b>Chat and browser voice</b>Type, or tap the microphone</div><span class="st">On this page</span></div>
   <div class="ch" id="ch-call"><div><b>Phone call</b>HALO by voice on a phone</div><span class="st" id="callst">Checking...</span></div>
   <div class="ch" id="ch-sms"><div><b>Text message</b>Alerts and questions by text</div><span class="st" id="smsst">Checking...</span></div>
-  <div class="call" id="callbar" hidden><div><b id="calltitle">Call HALO from this page</b><small id="callsub">A phone call through Twilio. Twilio listens and speaks; your microphone is used.</small></div>
+  <div class="call" id="callbar" hidden><div><b id="calltitle">Call HALO from this page</b><small id="callsub">A phone call in your browser. Your microphone is used.</small></div>
     <button id="callbtn" type="button">Call HALO</button><button id="mutebtn" class="ghost" type="button" hidden>Mute</button></div>
   <div class="call" id="ringbar" hidden><div><b>Have HALO call the mission phone</b><small id="ringsub">HALO rings the phone number set for this mission and you talk to the same assistant by voice.</small></div>
     <button id="ringbtn" type="button">Call me</button></div>
@@ -82,8 +82,8 @@
 </main>
 <script src="vendor/twilio.min.js?v=2.19.0"></script>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.17.0";
-import { createVoice } from "./scan/js/voice.js?v=0.17.0";
+import { CONFIG } from "./scan/js/config.js?v=0.18.0";
+import { createVoice } from "./scan/js/voice.js?v=0.18.0";
 const QS = new URLSearchParams(location.search), API = (QS.get("assistant") || CONFIG.ASSISTANT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 let sender = ""; try { sender = localStorage.getItem("halo_chat_id") || ""; if (!sender) { sender = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem("halo_chat_id", sender); } } catch { sender = String(Date.now()); }
@@ -130,7 +130,7 @@ function callUi(state) {
   const live = state === "live"; $("callbar").className = "call" + (live ? " live" : ""); $("mutebtn").hidden = !live;
   $("callbtn").textContent = live || state === "ringing" ? "Hang up" : "Call HALO"; $("callbtn").className = live || state === "ringing" ? "hang" : "";
   $("calltitle").textContent = live ? "On a call with HALO" : state === "ringing" ? "Calling HALO..." : "Call HALO from this page";
-  $("callsub").textContent = live ? "Speak after HALO finishes. Say goodbye to end the call." : "A phone call through Twilio. Twilio listens and speaks; your microphone is used.";
+  $("callsub").textContent = live ? "Speak after HALO finishes. Say goodbye to end the call." : "A phone call in your browser. Your microphone is used.";
 }
 $("callbtn").onclick = async () => {
   if (call) { call.disconnect(); return; }
@@ -162,8 +162,8 @@ $("phonebtn").onclick = () => { const open = $("phonesheet").hidden; $("phoneshe
 document.addEventListener("click", (e) => { if (e.target.closest("button, .btn")) navigator.vibrate?.(8); });
 
 async function init() {
-  if (!API) { $("connpill").className = "pill bad"; $("conn").textContent = "assistant address not set"; $("callst").textContent = $("smsst").textContent = "Not set up";
-    add("The HALO assistant service has not been deployed yet, so I cannot answer here. The crew console still works.", "sys"); $("q").disabled = $("send").disabled = $("mic").disabled = true; return; }
+  if (!API) { $("connpill").className = "pill bad"; $("conn").textContent = "not connected"; $("callst").textContent = $("smsst").textContent = "Not set up";
+    add("HALO is not connected right now, so I cannot answer here. Crew Control still works.", "sys"); $("q").disabled = $("send").disabled = $("mic").disabled = true; return; }
   try {
     const h = await (await fetch(API + "/health")).json(); $("connpill").className = "pill normal"; $("conn").textContent = "connected";
     const sms = h.twilio_configured, web = h.browser_calling && typeof Twilio !== "undefined";

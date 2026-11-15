@@ -276,3 +276,9 @@ The interface now follows the team's "HALO - NASA Challenge" Figma screens (supp
 - Small things borrowed from widely used apps: switches in place of checkboxes, a loading placeholder for the crew list, a light vibration on taps where the phone supports it, a page icon and theme colour.
 
 Not built from the Figma file, because each needs new behaviour or data: "Anything bothering you right now?", nudge and snooze sheets, the end-of-checklist log, the full-screen voice mode, and per-person vitals such as blood oxygen (a camera cannot measure it).
+
+## Version 0.18
+
+- The landing page (`index.html`) is now the public front page: what HALO is, its three parts, how it works and what it watches. Links to the API, the dataset and the source code are gone from it.
+- On-screen text no longer names the services or methods behind a feature.
+- Alignment: values in the live tiles sit on one line across a row, durations on the start screen are right-aligned, and card spacing is even.
