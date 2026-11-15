@@ -265,3 +265,42 @@ button.chip { width: auto; margin: 0; min-height: 36px; padding: 7px 14px; font:
 .pill.rest, .pill.alert { background: #f3e5e5; color: #850000 } .pill.caution, .pill.watch { background: #fff1cc; color: #8a6100 } .pill.ready, .pill.normal { background: #ebffe7; color: #1a8200 }
 
 @media (max-width: 380px) { main { padding-left: 16px; padding-right: 16px } .pad { height: 210px; font-size: 24px } .seg button { font-size: 14px } }
+
+/* ---- v0.19 polish ------------------------------------------------------------------------------
+   Softer corners, motion that explains (the ring draws, bars grow, screens fade in), one tab bar
+   shared by every app page, and a framed column on wide screens so the phone pages look placed. */
+:root { --r: 16px; --r2: 14px }
+.seg button { border-radius: 10px } .stepperq button, .scale button { border-radius: 12px }
+h1, h2, .title { text-wrap: balance } p, small { text-wrap: pretty }
+button, .btn { letter-spacing: -.1px; box-shadow: 0 1px 0 rgba(255, 255, 255, .12) inset }
+button.ghost, a.btn.ghost, .seg button, .scale button, .stepperq button, #types button, .crew, .hello .cards button, .chips button { box-shadow: none }
+.card, .info, .q, .sheet { box-shadow: 0 1px 0 rgba(255, 255, 255, .06) }
+.info { transition: transform .15s } 
+section:not([hidden]) { animation: fadeup .28s ease-out both }
+@keyframes fadeup { from { opacity: 0; transform: translateY(6px) } }
+.haloring circle:last-child { animation: draw 1s cubic-bezier(.2, .7, .2, 1) both }
+@keyframes draw { from { stroke-dasharray: 0 251.4 } }
+.pbar i { animation: grow .8s cubic-bezier(.2, .7, .2, 1) both; transform-origin: left }
+@keyframes grow { from { transform: scaleX(0) } }
+@media (prefers-reduced-motion: reduce) { section:not([hidden]), .haloring circle:last-child, .pbar i { animation: none } }
+
+/* Tab bar: the three parts of HALO, on every app page */
+.tabs { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 480px); z-index: 6; display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px 10px max(8px, env(safe-area-inset-bottom)); background: rgba(10, 10, 10, .82); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid #242424 }
+.tabs a { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 4px 5px; border-radius: 12px; color: #9a9aa3; text-decoration: none; font: 600 11.5px/1.2 var(--sans); letter-spacing: .01em }
+.tabs svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.tabs a[aria-current=page] { color: #fff } .tabs a[aria-current=page] svg { color: var(--blue) }
+.tabs a:hover { color: #fff }
+body.light .tabs { background: rgba(255, 255, 255, .86); border-top-color: #e8e8ec } body.light .tabs a { color: #6d6d76 } body.light .tabs a[aria-current=page], body.light .tabs a:hover { color: #0e0e0e } body.light .tabs a[aria-current=page] svg { color: var(--violet) }
+body:has(.tabs) main { padding-bottom: 96px }
+/* During the check itself the tab bar steps aside */
+body:has(#scan:not([hidden]), #game:not([hidden]), #recovery:not([hidden]), #finger:not([hidden]), #sleep:not([hidden])) .tabs { display: none }
+
+/* Wide screens: the phone-width pages sit in a frame */
+@media (min-width: 720px) {
+  body:not(.wide) { background: radial-gradient(1200px 600px at 50% -10%, #17102e 0, #000 60%) fixed }
+  body.light:not(.wide) { background: #f3f2f7 }
+  body:not(.wide) main { margin: 28px auto; min-height: calc(100vh - 56px); border: 1px solid #232323; border-radius: 30px; background: var(--bg); box-shadow: 0 30px 80px rgba(0, 0, 0, .5) }
+  body.light:not(.wide) main { border-color: #e3e2ea; box-shadow: 0 30px 80px rgba(40, 20, 120, .12) }
+  body:not(.wide) .tabs { width: 478px; border-left: 1px solid #232323; border-right: 1px solid #232323 }
+  body.light:not(.wide) .tabs { border-color: #e3e2ea }
+}

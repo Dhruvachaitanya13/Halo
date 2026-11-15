@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Talk to HALO</title><meta name="theme-color" content="#ffffff"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.18.0">
+<title>Talk to HALO</title><meta name="theme-color" content="#ffffff"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.19.0">
 <style>
-  html, body { height: 100% } main { display: flex; flex-direction: column; height: 100dvh; padding-bottom: 12px }
+  html, body { height: 100% } main { display: flex; flex-direction: column; height: 100dvh } @media (min-width: 720px) { main { height: calc(100dvh - 56px); min-height: 0 !important } }
   .wordmark { font-size: 25px } .tools { display: flex; gap: 10px; flex: none }
   .iconbtn { width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: #d9d9d9; border-color: #d9d9d9; color: #0e0e0e; text-decoration: none; font: 700 12px/1 var(--sans); letter-spacing: .04em }
   .iconbtn svg, .round svg, .hello .cards svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
@@ -79,11 +79,16 @@
 </form>
 <div class="opts"><label><input type="checkbox" id="speak"> Read replies aloud</label><label><input type="checkbox" id="hands"> Hands-free</label><span id="vnote"></span></div>
 <small class="foot">HALO only answers from crew data and the project database. NASA data is from May 2024.</small>
+<nav class="tabs" aria-label="HALO">
+  <a href="scan/scan.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-7 4 14 2.5-7h5"/></svg>Check</a>
+  <a href="assistant.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.8 7L4 20l1-4.2A8 8 0 1 1 20 12Z"/></svg>HALO</a>
+  <a href="console.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0M16 5.5a3.2 3.2 0 0 1 0 6M17.5 14a6 6 0 0 1 3.5 5.5"/></svg>Crew</a>
+</nav>
 </main>
 <script src="vendor/twilio.min.js?v=2.19.0"></script>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.18.0";
-import { createVoice } from "./scan/js/voice.js?v=0.18.0";
+import { CONFIG } from "./scan/js/config.js?v=0.19.0";
+import { createVoice } from "./scan/js/voice.js?v=0.19.0";
 const QS = new URLSearchParams(location.search), API = (QS.get("assistant") || CONFIG.ASSISTANT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 let sender = ""; try { sender = localStorage.getItem("halo_chat_id") || ""; if (!sender) { sender = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem("halo_chat_id", sender); } } catch { sender = String(Date.now()); }

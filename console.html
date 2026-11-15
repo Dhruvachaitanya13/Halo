@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO Crew Control</title><meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.18.0">
+<title>HALO Crew Control</title><meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.19.0">
 <style>
   .head { margin: 18px 0 14px } .head h1 { font: 700 21px/1.2 var(--sans) } .head p { margin: 2px 0 0; font-size: 15px; color: var(--body) }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line2); margin-right: 6px; vertical-align: 1px } .dot.ok { background: var(--green) } .dot.bad { background: var(--red) }
@@ -92,10 +92,15 @@
   <div class="scenes" id="scenes"></div><small id="scenemsg"></small>
 </details>
 <p id="err" class="warn" hidden></p>
+<nav class="tabs" aria-label="HALO">
+  <a href="scan/scan.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-7 4 14 2.5-7h5"/></svg>Check</a>
+  <a href="assistant.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.8 7L4 20l1-4.2A8 8 0 1 1 20 12Z"/></svg>HALO</a>
+  <a href="console.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0M16 5.5a3.2 3.2 0 0 1 0 6M17.5 14a6 6 0 0 1 3.5 5.5"/></svg>Crew</a>
+</nav>
 </main>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.18.0";
-import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.18.0";
+import { CONFIG } from "./scan/js/config.js?v=0.19.0";
+import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.19.0";
 const API = (new URLSearchParams(location.search).get("agent") || CONFIG.AGENT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id), el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const call = async (path, body, method) => {

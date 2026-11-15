@@ -1,13 +1,13 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js?v=0.18.0";
-import * as D from "./dsp.js?v=0.18.0";
-import { runMission } from "./mission.js?v=0.18.0";
+import { CONFIG } from "./config.js?v=0.19.0";
+import * as D from "./dsp.js?v=0.19.0";
+import { runMission } from "./mission.js?v=0.19.0";
 const cssv = (n) => getComputedStyle(document.querySelector(".sheet") || document.documentElement).getPropertyValue(n).trim(); // every canvas and bar sits on a white surface, so read the colours as they are there // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.18.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.19.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };

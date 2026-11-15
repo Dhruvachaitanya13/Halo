@@ -282,3 +282,10 @@ Not built from the Figma file, because each needs new behaviour or data: "Anythi
 - The landing page (`index.html`) is now the public front page: what HALO is, its three parts, how it works and what it watches. Links to the API, the dataset and the source code are gone from it.
 - On-screen text no longer names the services or methods behind a feature.
 - Alignment: values in the live tiles sit on one line across a row, durations on the start screen are right-aligned, and card spacing is even.
+
+## Version 0.19
+
+- Landing page rebuilt as a product page: sticky navigation, a larger headline, HALO in numbers, one section per part with a drawn example screen, how it works, common questions, and a closing call to action. The layout patterns (big headline, number strip, alternating feature rows) follow what leading health-tracking product sites do; the look stays HALO's own.
+- A tab bar (Check, HALO, Crew) on every app page. It steps aside while a check is running.
+- The score ring draws and the score bars grow when a result opens; screens fade in. All motion is off when the device asks for reduced motion.
+- On wide screens the phone-width pages sit in a framed column.

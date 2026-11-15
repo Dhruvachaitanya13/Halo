@@ -2,88 +2,171 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HALO - crew health monitoring</title>
 <meta name="description" content="HALO is a daily health check for space crews that runs on a phone camera, with an assistant and a crew control screen.">
-<meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.18.0">
+<meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.19.0">
 <style>
-  main { max-width: 1080px; padding: 22px 24px 40px }
-  .nav { display: flex; gap: 6px; align-items: center }
-  .nav a { color: var(--body); text-decoration: none; font: 500 15px/1 var(--sans); padding: 10px 12px; border-radius: 8px } .nav a:hover { color: #fff; background: var(--card2) }
-  .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; padding: 56px 0 64px }
-  .hero h1 { font: 700 54px/1.05 var(--sans); letter-spacing: -1.6px; margin: 14px 0 18px }
-  .hero p { font-size: 19px; line-height: 1.5; color: var(--body); margin: 0; max-width: 520px }
-  .kicker { display: inline-block; font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--blue); padding: 8px 12px; border-radius: 999px; background: var(--blue-bg) }
-  .cta { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap } .cta .btn { width: auto; margin: 0; padding: 15px 26px }
-  /* A picture of the result, drawn in the page itself */
-  .demo { justify-self: center; width: 100%; max-width: 340px; background: #fff; border-radius: 18px; padding: 16px; color: #0e0e0e; box-shadow: 0 0 0 1px #2a2a2a, 0 30px 80px rgba(99, 54, 246, .28) }
-  .demo .v { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: center; background: #ebffe7; border-radius: 12px; padding: 14px }
-  .demo .v b { display: block; font: 700 19px/1.2 var(--sans) } .demo .v span { font-size: 14px; color: #232323 }
-  .demo svg { width: 84px; height: 84px; display: block } .demo text { font-family: var(--sans) }
-  .demo .bars { padding: 14px 4px 2px } .demo .bar { display: grid; grid-template-columns: 84px 1fr 30px; gap: 10px; align-items: center; font-size: 14px; margin: 9px 0 }
-  .demo .bar i { height: 6px; border-radius: 3px; background: #d9d9d9; position: relative; overflow: hidden } .demo .bar i::after { content: ""; position: absolute; inset: 0; width: var(--w); border-radius: 3px; background: #1a8200 }
-  .demo .bar span:last-child { text-align: right; font-variant-numeric: tabular-nums }
-  .demo small { text-align: center; margin-top: 8px; font-size: 12px }
-  h2.sec { font: 700 28px/1.15 var(--sans); letter-spacing: -.6px; margin: 0 0 6px } p.secsub { margin: 0 0 22px; font-size: 16px; color: var(--body) }
-  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px }
-  .prod { display: flex; flex-direction: column; background: #fff; color: #0e0e0e; border-radius: 14px; padding: 20px; text-decoration: none; border: 2px solid #fff; transition: border-color .15s, transform .15s }
-  .prod:hover { border-color: var(--violet); transform: translateY(-2px) }
-  .prod .ic { margin-bottom: 16px } .prod b { font: 700 19px/1.25 var(--sans) } .prod p { margin: 6px 0 18px; font-size: 15px; line-height: 1.45; color: #232323; flex: 1 }
-  .prod .go { font: 700 15px/1 var(--sans); color: var(--violet) } .prod .go::after { content: " \2192" }
-  .prod.sos .ic { background: #f3e5e5; color: #bc0000 }
-  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: n }
-  .steps3 div { border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--card2); counter-increment: n }
-  .steps3 div::before { content: counter(n); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--violet); color: #fff; font: 700 15px/1 var(--sans); margin-bottom: 14px }
-  .steps3 b { display: block; font: 700 17px/1.3 var(--sans); margin-bottom: 4px } .steps3 p { margin: 0; font-size: 15px; line-height: 1.45 }
-  .watch { display: flex; flex-wrap: wrap; gap: 8px } .watch span { font: 500 15px/1 var(--sans); padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line2); color: var(--body) }
-  section.block { padding: 0 0 64px }
-  footer { border-top: 1px solid var(--line); padding-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 14px; color: var(--dim) }
+  html { scroll-behavior: smooth } @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } }
+  main { max-width: 1120px; padding: 0 28px 40px }
+  /* Navigation stays in reach */
+  .bar { position: sticky; top: 0; z-index: 10; margin: 0 -28px; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; background: rgba(0, 0, 0, .72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid transparent }
+  .nav { display: flex; gap: 4px; align-items: center }
+  .nav a { color: var(--body); text-decoration: none; font: 500 15px/1 var(--sans); padding: 10px 14px; border-radius: 999px } .nav a:hover { color: #fff; background: var(--card2) }
+  .nav a.pillbtn { background: #fff; color: #000; font-weight: 600; margin-left: 8px } .nav a.pillbtn:hover { background: #e9e6ff; color: #000 }
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; padding: 72px 0 56px; position: relative }
+  .hero::before { content: ""; position: absolute; right: -10%; top: 0; width: 70%; height: 100%; background: radial-gradient(closest-side, rgba(99, 54, 246, .32), transparent); pointer-events: none }
+  .hero > * { position: relative }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--blue); padding: 8px 12px; border-radius: 999px; background: var(--blue-bg); border: 1px solid #2a1c66 }
+  .kicker::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green) }
+  .hero h1 { font: 700 68px/1.02 var(--sans); letter-spacing: -2.4px; margin: 18px 0 20px }
+  .hero h1 em { font-style: normal; color: var(--blue) }
+  .hero p { font-size: 19px; line-height: 1.55; color: var(--body); margin: 0; max-width: 540px }
+  .cta { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap } .cta .btn { width: auto; margin: 0; padding: 16px 28px; border-radius: 999px }
+  .fine { margin-top: 16px; font-size: 14px; color: var(--dim) }
+  /* Phone mock-ups: our own screens, drawn in the page */
+  .phone { justify-self: center; width: 100%; max-width: 330px; border-radius: 38px; padding: 10px; background: #0b0b0b; border: 1px solid #2c2c2c; box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 6px #050505 }
+  .screen { border-radius: 29px; background: #000; padding: 18px 14px 16px; overflow: hidden; min-height: 420px; color: #fff }
+  .screen.lightscr { background: #fff; color: #0e0e0e }
+  .mtop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px } .mtop .logo { width: 24px; height: 24px } .mtop b { font: 700 19px/1 var(--serif); margin-left: 8px } .mtop span { display: flex; align-items: center } .mtop i { font: 500 10px/1 var(--sans); letter-spacing: .08em; font-style: normal; color: #c9c9cf }
+  .mseg { display: flex; gap: 5px; margin-bottom: 14px } .mseg u { flex: 1; height: 3px; border-radius: 2px; background: var(--violet) }
+  .mcard { background: #fff; color: #0e0e0e; border-radius: 14px; padding: 12px; margin-top: 9px }
+  .mv { display: grid; grid-template-columns: 70px 1fr; gap: 12px; align-items: center; background: #ebffe7 } .mv b { display: block; font: 700 16px/1.2 var(--sans) } .mv span { font-size: 12.5px; color: #232323 } .mv svg { width: 70px; height: 70px; display: block }
+  .mbar { display: grid; grid-template-columns: 74px 1fr 26px; gap: 8px; align-items: center; font-size: 12.5px; margin: 7px 0 } .mbar i { height: 5px; border-radius: 3px; background: #d9d9d9; position: relative; overflow: hidden } .mbar i::after { content: ""; position: absolute; inset: 0; width: var(--w); border-radius: 3px; background: #1a8200 } .mbar span:last-child { text-align: right; font-weight: 600 }
+  .mrow { display: flex; justify-content: space-between; font-size: 12.5px; padding: 7px 0; border-top: 1px solid #ececf0 } .mrow:first-of-type { border-top: 0 } .mrow b { font-weight: 700 }
+  .mh { font: 700 13px/1 var(--sans); margin-bottom: 8px }
+  .bub { max-width: 84%; padding: 9px 12px; border-radius: 13px; font-size: 13px; line-height: 1.4; margin-top: 9px } .bub.you { margin-left: auto; background: #000; color: #fff; border-bottom-right-radius: 4px } .bub.halo { border: 1.5px solid var(--violet-line); border-bottom-left-radius: 4px }
+  .mcomp { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 5px 5px 5px 14px; border: 1.5px solid var(--violet); border-radius: 999px; font-size: 13px; color: #63636b } .mcomp i { width: 30px; height: 30px; border-radius: 50%; background: #000; display: block }
+  .mstep { font: 700 19px/1.25 var(--sans); margin: 10px 0 8px } .mcap { font: 600 10px/1.3 var(--sans); letter-spacing: .08em; color: #c9c9cf } .msos { font: 700 10px/1 var(--sans); letter-spacing: .06em; background: var(--sos); color: #fff; padding: 6px 9px; border-radius: 999px }
+  .mprog { display: flex; gap: 4px; margin-bottom: 14px } .mprog u { flex: 1; height: 3px; border-radius: 2px; background: #3a3a3a } .mprog u.on { background: var(--sos) }
+  .macts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px } .macts span { display: grid; place-items: center; height: 44px; border-radius: 10px; background: #2a2a2a; font: 700 13.5px/1 var(--sans) } .macts span:first-child { background: var(--ok-fill) }
+  .mvoice { background: var(--blue-bg); border: 1px solid #3a2a8a; border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.4; margin-top: 10px } .mvoice b { display: block; font: 700 10px/1.4 var(--sans); letter-spacing: .08em; color: var(--blue) }
+  /* Numbers */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(#0d0d0d, #060606); margin-bottom: 96px }
+  .stats div { padding: 26px 24px; border-left: 1px solid var(--line) } .stats div:first-child { border-left: 0 }
+  .stats b { display: block; font: 700 40px/1 var(--sans); letter-spacing: -1.2px } .stats b small { display: inline; font: 600 18px/1 var(--sans); color: var(--blue); margin-left: 2px } .stats span { display: block; margin-top: 8px; font-size: 14.5px; line-height: 1.4; color: var(--dim) }
+  /* Feature rows */
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; padding: 0 0 104px }
+  .feat.flip > .phone { order: -1 }
+  .eyebrow2 { font: 600 12px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--blue) }
+  .feat h2 { font: 700 42px/1.08 var(--sans); letter-spacing: -1.2px; margin: 14px 0 16px } .feat p { font-size: 17px; line-height: 1.55; margin: 0 0 18px; max-width: 480px }
+  .ticks { list-style: none; padding: 0; margin: 0 0 26px } .ticks li { position: relative; padding-left: 30px; margin: 11px 0; font-size: 16px; color: var(--body) }
+  .ticks li::before { content: ""; position: absolute; left: 0; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--blue-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m5.500 10.300 3 3 6-6.600' fill='none' stroke='%23a48bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat }
+  .feat .btn { display: inline-block; width: auto; margin: 0; padding: 14px 24px; border-radius: 999px; font-size: 16px }
+  h2.sec { font: 700 42px/1.08 var(--sans); letter-spacing: -1.2px; margin: 0 0 10px; text-align: center } p.secsub { margin: 0 auto 36px; font-size: 17px; color: var(--body); text-align: center; max-width: 560px }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: n; padding-bottom: 104px }
+  .steps3 div { border: 1px solid var(--line); border-radius: 20px; padding: 24px; background: linear-gradient(#111, #0a0a0a); counter-increment: n }
+  .steps3 div::before { content: "0" counter(n); display: block; font: 700 14px/1 var(--sans); letter-spacing: .08em; color: var(--blue); margin-bottom: 40px }
+  .steps3 b { display: block; font: 700 19px/1.3 var(--sans); margin-bottom: 6px } .steps3 p { margin: 0; font-size: 15.5px; line-height: 1.5 }
+  /* Questions */
+  .faq { max-width: 760px; margin: 0 auto; padding-bottom: 104px }
+  .faq details { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 0 } .faq details:last-child { border-bottom: 1px solid var(--line) }
+  .faq summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 2px; font: 600 18px/1.35 var(--sans); letter-spacing: 0; text-transform: none; color: #fff } .faq summary::-webkit-details-marker { display: none }
+  .faq summary::after { content: "+"; font: 400 26px/1 var(--sans); color: var(--blue); flex: none; transition: transform .2s } .faq details[open] summary::after { transform: rotate(45deg) }
+  .faq details p { margin: -4px 2px 20px; font-size: 16px; line-height: 1.55; max-width: 660px }
+  .band { text-align: center; border-radius: 28px; padding: 64px 24px; margin-bottom: 56px; background: radial-gradient(600px 260px at 50% 0, rgba(99, 54, 246, .55), transparent), #0c0a17; border: 1px solid #2a1c66 }
+  .band h2 { font: 700 44px/1.08 var(--sans); letter-spacing: -1.4px; margin: 0 0 12px } .band p { margin: 0 auto 26px; font-size: 17px; max-width: 520px } .band .cta { justify-content: center; margin: 0 }
+  footer { border-top: 1px solid var(--line); padding-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px }
   footer b { color: var(--body); font-weight: 600 } footer p { margin: 0 0 6px; color: var(--dim); font-size: 14px } footer .r { text-align: right }
-  @media (max-width: 860px) {
-    main { padding: 20px 20px 32px } .nav a:not(.keep) { display: none }
-    .hero { grid-template-columns: 1fr; gap: 32px; padding: 32px 0 48px } .hero h1 { font-size: 38px; letter-spacing: -1px } .hero p { font-size: 17px }
+  @media (max-width: 900px) {
+    main { padding: 0 20px 32px } .bar { margin: 0 -20px; padding: 12px 20px } .nav a:not(.pillbtn) { display: none }
+    .hero { grid-template-columns: 1fr; gap: 40px; padding: 36px 0 48px } .hero h1 { font-size: 42px; letter-spacing: -1.4px } .hero p { font-size: 17px } .hero::before { width: 120%; right: -30% }
     .cta { flex-direction: column } .cta .btn { width: 100% }
-    .three, .steps3 { grid-template-columns: 1fr; gap: 12px } section.block { padding-bottom: 48px } h2.sec { font-size: 24px }
+    .stats { grid-template-columns: 1fr 1fr; margin-bottom: 64px } .stats div { padding: 20px 18px } .stats div:nth-child(3) { border-left: 0 } .stats div:nth-child(n+3) { border-top: 1px solid var(--line) } .stats b { font-size: 32px }
+    .feat { grid-template-columns: 1fr; gap: 32px; padding-bottom: 72px } .feat.flip > .phone { order: 0 } .feat h2, h2.sec, .band h2 { font-size: 30px; letter-spacing: -.8px }
+    .steps3 { grid-template-columns: 1fr; gap: 12px; padding-bottom: 72px } .steps3 div::before { margin-bottom: 20px } .faq { padding-bottom: 72px } .band { padding: 44px 20px }
     footer { grid-template-columns: 1fr } footer .r { text-align: left }
   }
 </style></head>
-<body><main>
-<header class="top"><a class="brandmark" href="./" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">HALO</span></a>
-  <nav class="nav" aria-label="Main"><a href="scan/">Health check</a><a href="assistant.html">Talk to HALO</a><a href="console.html" class="keep">Crew Control</a></nav></header>
+<body class="wide"><main>
+<header class="bar"><a class="brandmark" href="./" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">HALO</span></a>
+  <nav class="nav" aria-label="Main"><a href="#check">Health check</a><a href="#assistant">Assistant</a><a href="#crew">Crew Control</a><a href="#how">How it works</a><a class="pillbtn" href="scan/">Start a check</a></nav></header>
 
 <div class="hero">
   <div><span class="kicker">Crew health monitoring</span>
-    <h1>A daily health check that runs on a phone camera.</h1>
-    <p>HALO reads heart rate, breathing and alertness from the camera, tests reaction and focus with a short docking game, and compares each crew member with their own baseline. No wearables, no extra hardware.</p>
-    <div class="cta"><a class="btn" href="scan/">Start a health check</a><a class="btn ghost" href="assistant.html">Talk to HALO</a></div></div>
-  <div class="demo" role="img" aria-label="Example result: Ready, readiness 86 of 100, with scores for breathing, alertness, sleep and reaction">
-    <div class="v"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="none" stroke-width="7" transform="rotate(-90 48 48)"><circle cx="48" cy="48" r="40" stroke="rgba(0,0,0,.1)"/><circle cx="48" cy="48" r="40" stroke="#1a8200" stroke-linecap="round" stroke-dasharray="216 251.3"/></g><text x="48" y="47" text-anchor="middle" font-size="22" font-weight="700" fill="#0e0e0e">86</text><text x="48" y="63" text-anchor="middle" font-size="13" fill="#232323">of 100</text></svg>
-      <div><b>Ready</b><span>Nothing was flagged in this check</span></div></div>
-    <div class="bars">
-      <div class="bar"><span>Breathing</span><i style="--w:92%"></i><span>92</span></div>
-      <div class="bar"><span>Alertness</span><i style="--w:88%"></i><span>88</span></div>
-      <div class="bar"><span>Sleep</span><i style="--w:100%"></i><span>100</span></div>
-      <div class="bar"><span>Reaction</span><i style="--w:74%"></i><span>74</span></div>
-    </div><small>Example result</small></div>
+    <h1>Know who is <em>ready</em>, before the shift starts.</h1>
+    <p>HALO is a daily health check that runs on a phone camera. It reads heart rate, breathing and alertness, tests reaction with a short docking game, and compares each crew member with their own baseline.</p>
+    <div class="cta"><a class="btn" href="scan/">Start a health check</a><a class="btn ghost" href="#how">See how it works</a></div>
+    <p class="fine">No wearables. Nothing to install. The video never leaves the phone.</p></div>
+  <div class="phone" role="img" aria-label="Example result screen: Ready, readiness 86 of 100, with scores by area and readings">
+    <div class="screen"><div class="mtop"><span><span class="logo"></span><b>HALO</b></span><i>STEP 5 OF 5</i></div><div class="mseg"><u></u><u></u><u></u><u></u><u></u></div>
+      <div class="mcard mv"><svg viewBox="0 0 96 96" aria-hidden="true"><g fill="none" stroke-width="7" transform="rotate(-90 48 48)"><circle cx="48" cy="48" r="40" stroke="rgba(0,0,0,.1)"/><circle cx="48" cy="48" r="40" stroke="#1a8200" stroke-linecap="round" stroke-dasharray="216 251.3"/></g><text x="48" y="47" text-anchor="middle" font-size="22" font-weight="700" fill="#0e0e0e" font-family="Inter, sans-serif">86</text><text x="48" y="63" text-anchor="middle" font-size="13" fill="#232323" font-family="Inter, sans-serif">of 100</text></svg><div><b>Ready</b><span>Nothing was flagged in this check</span></div></div>
+      <div class="mcard"><div class="mh">What makes up the score?</div>
+        <div class="mbar"><span>Breathing</span><i style="--w:92%"></i><span>92</span></div><div class="mbar"><span>Alertness</span><i style="--w:88%"></i><span>88</span></div><div class="mbar"><span>Sleep</span><i style="--w:100%"></i><span>100</span></div><div class="mbar"><span>Reaction</span><i style="--w:74%"></i><span>74</span></div></div>
+      <div class="mcard"><div class="mh">Your readings</div><div class="mrow"><span>Heart rate</span><b>72 bpm</b></div><div class="mrow"><span>Breathing</span><b>14 /min</b></div><div class="mrow"><span>Reaction time</span><b>318 ms</b></div></div>
+    </div></div>
 </div>
 
-<section class="block"><h2 class="sec">Three parts, one system</h2><p class="secsub">Each one works on its own and they share the same crew data.</p>
-<div class="three">
-  <a class="prod" href="scan/"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2.5"/><path d="m15.5 10.5 5-3v9l-5-3"/></svg></span>
-    <b>Health check</b><p>A one to five minute check on any phone: camera scan, docking game and three questions. It ends with a readiness score and a clear verdict: ready, caution or rest.</p><span class="go">Start a check</span></a>
-  <a class="prod" href="assistant.html"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.500V21M8.500 21h7"/></svg></span>
-    <b>Talk to HALO</b><p>Ask about the crew, your last check, or radiation and space weather. By chat, by voice, or on a phone call. HALO answers only from crew data.</p><span class="go">Open the assistant</span></a>
-  <a class="prod sos" href="console.html"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.500 21.500 20h-19ZM12 10v4.500M12 17.500h.01"/></svg></span>
-    <b>Crew Control</b><p>Who is ready today, the daily report, and a crew SOS that walks you through an emergency checklist one step at a time, hands-free if needed.</p><span class="go">Open Crew Control</span></a>
-</div></section>
+<div class="stats" aria-label="HALO in numbers">
+  <div><b>1&ndash;5<small>min</small></b><span>for a full check, on any phone with a camera</span></div>
+  <div><b>9</b><span>signals watched, from heart rate to space weather</span></div>
+  <div><b>5</b><span>emergency checklists, read aloud one step at a time</span></div>
+  <div><b>0</b><span>wearables or extra hardware needed</span></div>
+</div>
 
-<section class="block"><h2 class="sec">How it works</h2><p class="secsub">From scan to action in a few minutes.</p>
+<section class="feat" id="check">
+  <div><span class="eyebrow2">Health check</span><h2>A check-up in the time it takes to make coffee.</h2>
+    <p>Scan a code and follow three short parts. HALO coaches you while it measures, and tells you plainly when a signal is too weak to trust.</p>
+    <ul class="ticks"><li>Camera scan for heart rate, breathing, blinking and eye closure</li><li>A docking game that measures reaction, focus and memory</li><li>One score and one verdict: ready, caution or rest</li><li>Compared with your own earlier checks, not an average person</li></ul>
+    <a class="btn" href="scan/">Start a health check</a></div>
+  <div class="phone" role="img" aria-label="Example start screen of the health check">
+    <div class="screen"><div class="mtop"><span><span class="logo"></span><b>HALO</b></span><i>STEP 1 OF 5</i></div><div class="mseg"><u></u><u style="background:#fff"></u><u style="background:#fff"></u><u style="background:#fff"></u><u style="background:#fff"></u></div>
+      <div style="font:700 17px/1.2 var(--sans)">Daily health check</div><div style="font-size:12.5px;color:#e6e6e9;margin:2px 0 6px">A camera scan, short tests and a few questions.</div>
+      <div class="mcard"><div class="mrow"><span><b>Camera scan</b><br>Heart rate, breathing, blinking</span><span>45 s</span></div></div>
+      <div class="mcard"><div class="mrow"><span><b>Reaction tests</b><br>A short docking game</span><span>3 tests</span></div></div>
+      <div class="mcard"><div class="mrow"><span><b>Quick questions</b><br>Sleep, alertness, mood</span><span>30 s</span></div></div>
+      <div style="margin-top:14px;background:var(--violet);border-radius:12px;height:46px;display:grid;place-items:center;font:700 15px/1 var(--sans)">Agree and start</div>
+    </div></div>
+</section>
+
+<section class="feat flip" id="assistant">
+  <div><span class="eyebrow2">Talk to HALO</span><h2>Ask in plain words. Get an answer from the data.</h2>
+    <p>One assistant for the whole crew. It answers only from crew records and the mission's data, and says so when it has no answer.</p>
+    <ul class="ticks"><li>Crew status, the daily report and your last check</li><li>Cabin radiation, the radiation forecast and space weather</li><li>By chat, by voice, hands-free, or on a phone call</li><li>Say what is wrong and it starts the right emergency checklist</li></ul>
+    <a class="btn" href="assistant.html">Talk to HALO</a></div>
+  <div class="phone" role="img" aria-label="Example conversation with the HALO assistant">
+    <div class="screen lightscr"><div class="mtop"><span><span class="logo" style="--bg:#fff"></span><b>Talk to HALO</b></span><span class="msos">SOS</span></div>
+      <div class="bub you">How did my last check go?</div>
+      <div class="bub halo">Your readiness was <b>86, ready</b>. Reaction was a little slower than your usual; everything else was in range.</div>
+      <div class="bub you">Anything in the space weather today?</div>
+      <div class="bub halo">Cabin dose rate is normal. No radiation peak is forecast in the next 30 minutes.</div>
+      <div class="mcomp">Ask HALO anything<i></i></div>
+    </div></div>
+</section>
+
+<section class="feat" id="crew">
+  <div><span class="eyebrow2">Crew Control</span><h2>When something is wrong, one step at a time.</h2>
+    <p>See who is ready today and read each person's report. In an emergency, HALO raises the alert for mission support and walks the crew through the checklist.</p>
+    <ul class="ticks"><li>Every crew member's status at a glance</li><li>Suggests a check on a crewmate when their readings drift</li><li>Checklists for breathing difficulty, chest pain, fainting, bleeding and more</li><li>Reads each step aloud and listens for "done", "can't" or "changed"</li></ul>
+    <a class="btn" href="console.html">Open Crew Control</a></div>
+  <div class="phone" role="img" aria-label="Example emergency checklist step">
+    <div class="screen"><div class="mtop"><span><span class="logo"></span><b>HALO</b></span><span class="msos">SOS</span></div>
+      <div class="mprog"><u class="on"></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u></div>
+      <div class="mcap">STEP 1 OF 14 &middot; BREATHING DIFFICULTY</div>
+      <div class="mstep">Alert the flight surgeon now. Don't wait to see if it improves.</div>
+      <div class="mcard"><div class="mh">Alert to mission support</div><div style="font-size:12.5px;color:#232323">Sent. Waiting for ground to confirm.</div></div>
+      <div class="mvoice"><b>HALO &middot; READING ALOUD</b>"Step 1 of 14. Say done, can't, changed, or skip."</div>
+      <div class="macts"><span>Done</span><span>Can't do</span><span style="color:#ff9b93">Changed</span><span>Skip</span></div>
+    </div></div>
+</section>
+
+<section id="how"><h2 class="sec">How it works</h2><p class="secsub">From scan to action in a few minutes.</p>
 <div class="steps3">
-  <div><b>Scan the code</b><p>A crew member scans a QR code and the check opens in the phone's browser. Nothing to install. The video never leaves the phone.</p></div>
-  <div><b>Take the check</b><p>Hold still for the camera, fly a short docking mission, answer three questions. HALO coaches you if the light or the signal is poor.</p></div>
-  <div><b>HALO compares and acts</b><p>Each result is compared with that person's own earlier checks. HALO flags what changed, suggests a check on a crewmate, and starts the SOS when asked.</p></div>
+  <div><b>Scan the code</b><p>A crew member scans a QR code and the check opens in the phone's browser. Nothing to install.</p></div>
+  <div><b>Take the check</b><p>Hold still for the camera, fly a short docking mission, answer three questions.</p></div>
+  <div><b>HALO compares and acts</b><p>The result is compared with that person's own earlier checks. HALO flags what changed and tells the crew.</p></div>
 </div></section>
 
-<section class="block"><h2 class="sec">What HALO watches</h2><p class="secsub">The crew and the environment around them.</p>
-<div class="watch"><span>Heart rate</span><span>Breathing rate</span><span>Blinking and eye closure</span><span>Reaction time</span><span>Focus and memory</span><span>Sleep and mood</span><span>Cabin radiation</span><span>Radiation peak forecast</span><span>Space weather</span></div></section>
+<section><h2 class="sec">Questions</h2><p class="secsub">What people ask first.</p>
+<div class="faq">
+  <details><summary>Is my video recorded?</summary><p>No. The camera is read on the phone and the video is never saved or sent. Only the resulting numbers are stored, under a random code with no name.</p></details>
+  <details><summary>What if the camera cannot get a good reading?</summary><p>HALO tells you. It coaches you on light and stillness during the scan, and if a signal is still too weak it leaves that reading blank instead of guessing. A fingertip on the camera gives a second way to read the pulse.</p></details>
+  <details><summary>How does HALO decide ready, caution or rest?</summary><p>It combines the camera readings, the reaction tests and your answers into one score, and looks at which readings fall outside their usual range. After a few checks it compares you with your own baseline.</p></details>
+  <details><summary>Where does the radiation and space-weather information come from?</summary><p>From NASA records of the International Space Station and of solar activity, for May 2024. It is shown as historical data and is never mixed with a person's own readings.</p></details>
+  <details><summary>Is HALO a medical device?</summary><p>No. HALO is a prototype. It flags things for a person to look at; it does not diagnose, and its results are not medical advice. The emergency checklists come from published sources and have not been medically reviewed.</p></details>
+</div></section>
+
+<div class="band"><h2>Run your first check.</h2><p>It takes about a minute on the quick setting. All you need is a phone.</p>
+  <div class="cta"><a class="btn" href="scan/">Start a health check</a><a class="btn ghost" href="assistant.html">Talk to HALO</a></div></div>
 
 <footer><div><p><b>HALO</b> by Team Helixonauts</p><p>NASA Space Apps Challenge 2026</p></div>
-  <div class="r"><p><b>A prototype, not a medical device.</b> Its results are not medical advice.</p><p>Camera readings are experimental. Radiation and space-weather data are NASA records from May 2024. Demo crew members are simulated and labelled.</p></div></footer>
+  <div class="r"><p><b>A prototype, not a medical device.</b> Its results are not medical advice.</p><p>Camera readings are experimental. Example screens on this page show sample values. Demo crew members are simulated and labelled.</p></div></footer>
 </main></body></html>
