@@ -1,0 +1,103 @@
+# HALO scoring engine rules-v0 (AGENTS.md §7). Every number here is team_derived unless marked otherwise.
+engine: rules-v0
+
+mission_start: "2026-11-15T00:00:00Z"   # ⚑ demo CSV has no calendar date (AGENTS.md §5)
+baseline_scenarios: [baseline]          # CSV `scenario` values that count as the baseline phase
+
+baseline:
+  # team_derived: 3 points is not a baseline. < 12 in the activity group -> pooled fallback (partial);
+  # < 12 pooled -> insufficient (no z band is applied; red flags still run).
+  min_points: 12
+  # team_derived: live camera crews scan about once a day, so 12 points would take 12 days. Their own
+  # baseline needs 3 scans; below that baseline_quality = insufficient ("Baseline building (n/3)"), red flags still run.
+  min_points_by_origin:
+    camera_scan: 3
+  mad_scale: 1.4826      # MAD -> SD for normal data (standard constant)
+  # team_derived: metrics whose level depends strongly on activity never use the pooled fallback
+  # (active HR ~98 vs an in-bed-dominated pool ~60 gave false alerts). Too few points -> insufficient.
+  no_pool_metrics: [heart_rate_bpm]
+  # MAD floors = measurement resolution (team_derived). temp: switch to 0.2 if too sensitive.
+  mad_floor:
+    heart_rate_bpm: 1.0
+    resp_rate_bpm: 1.0
+    systolic_bp_mmhg: 2.0
+    diastolic_bp_mmhg: 2.0
+    body_temp_c: 0.1
+    spo2_pct: 1.0
+
+z_bands:
+  caution: 2.0
+  alert: 3.0
+  alert_consecutive: 2   # debounce: alert needs this many consecutive new readings beyond the alert band
+
+trend:                   # AGENTS.md §7.3 (team_derived)
+  window: 3
+  unit: days             # days | hours | readings. Steps = calendar mission days / clock hours / single readings
+  min_steps: 3           # fewer steps in the window -> trend null
+  min_points_per_step: 6 # days/hours: a step (e.g. today so far) with fewer new readings is left out
+  slope_sigma_per_day: 0.5   # |slope| >= 0.5 × baseline sigma per day -> rising / falling
+  # Fit-quality gate (team_derived): a slope past the threshold counts as rising/falling only if
+  # |slope| / SE(slope) >= min_slope_t, each step weighted by its own n (median variance ≈ (1.2533σ)²/n).
+  # Chosen over R² >= 0.6 and "all steps same direction" on SIMULATED_drift_7d.csv; null = off.
+  min_slope_t: 2.3
+  days_to_alert_max: 14      # days_to_alert shown only when 0 < d <= 14
+
+# Which deviation direction counts. high | low | both
+unfavourable:
+  heart_rate_bpm: high
+  resp_rate_bpm: high
+  body_temp_c: high
+  spo2_pct: low
+  systolic_bp_mmhg: both
+  diastolic_bp_mmhg: both
+
+# Which new-measurement flags make a value "new" (AGENTS.md §7.1). always = every row.
+# The first value seen for a metric is always treated as new (there is nothing to carry forward from).
+new_measurement_flags:
+  heart_rate_bpm: always
+  resp_rate_bpm: [bp, temp]
+  systolic_bp_mmhg: [bp, temp]
+  diastolic_bp_mmhg: [bp, temp]
+  spo2_pct: [bp, temp]
+  body_temp_c: [temp]
+
+confidence:
+  baseline_full_n: 12        # baseline_term = mean(min(1, n / 12)) over the vitals the data origin can measure
+  baseline_full_n_by_origin: # team_derived: a live camera crew's baseline is complete at its min_points (3 scans)
+    camera_scan: 3
+  fresh_full_minutes: 30     # freshness 1.0 up to here ...
+  fresh_zero_minutes: 360    # ... falling linearly to 0 at 6 h
+
+data_origin:                 # measurement_origin -> data_origin. Unknown origins are rejected.
+  master_csv_playback_not_camera: demo_playback
+  camera: camera
+  SIMULATED: simulated
+  camera_scan: camera_scan   # real measurement from the team's scan page (POST /api/v1/scan)
+
+# Real measurements ("live" crews). A crew never mixes live and synthetic readings, so a real scan is never
+# compared with a demo/simulated baseline (e.g. CREW_01).
+live_data_origins: [camera_scan]
+
+# Vitals each data origin can measure (team_derived). Confidence's baseline and completeness terms use only these,
+# so a camera scan is not marked down for BP / SpO2 / temperature it can never measure. Unlisted origins: all six.
+# Unmeasurable vitals are still reported as missing (status insufficient), never normal.
+measurable_metrics:
+  camera_scan: [heart_rate_bpm, resp_rate_bpm]
+
+# Reason text says how far from usual in plain words (no statistics terms); deviation_mad keeps the number.
+# team_derived, aligned with z_bands: < 2 no adverb ("above your usual"), caution band 2–3 "noticeably",
+# 3–4 "clearly", >= 4 "well". Used by ScoreResult.reasons[].text, so the SOS and the daily report read the same.
+deviation_words:
+  - {below: 2, word: ""}
+  - {below: 3, word: noticeably}
+  - {below: 4, word: clearly}
+  - {word: well}
+
+metrics:                     # display only (reason text)
+  heart_rate_bpm: {label: heart rate, unit: bpm}
+  resp_rate_bpm: {label: respiratory rate, unit: /min}
+  systolic_bp_mmhg: {label: systolic BP, unit: mmHg}
+  diastolic_bp_mmhg: {label: diastolic BP, unit: mmHg}
+  body_temp_c: {label: body temperature, unit: °C}
+  spo2_pct: {label: SpO2, unit: "%"}
+  blink_rate_per_min: {label: blink rate, unit: /min}
