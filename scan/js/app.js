@@ -1,13 +1,13 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js?v=0.15.0";
-import * as D from "./dsp.js?v=0.15.0";
-import { runMission } from "./mission.js?v=0.15.0";
-const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(); // theme colours for the canvases
+import { CONFIG } from "./config.js?v=0.17.0";
+import * as D from "./dsp.js?v=0.17.0";
+import { runMission } from "./mission.js?v=0.17.0";
+const cssv = (n) => getComputedStyle(document.querySelector(".sheet") || document.documentElement).getPropertyValue(n).trim(); // every canvas and bar sits on a white surface, so read the colours as they are there // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.15.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.17.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -16,6 +16,7 @@ const STAGE = { consent: 0, scan: 1, game: 2, recovery: 2, finger: 2, sleep: 3, 
 const show = (id) => {
   document.querySelectorAll("section").forEach((s) => (s.hidden = s.id !== id));
   [...document.querySelectorAll("#stepper li")].forEach((li, i) => (li.className = i < STAGE[id] ? "done" : i === STAGE[id] ? "now" : ""));
+  if (STAGE[id] >= 0) $("stepno").textContent = `Step ${STAGE[id] + 1} of 5`;
   window.scrollTo({ top: 0 });
 };
 const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
@@ -30,6 +31,21 @@ let stream = null, landmarker = null, running = false, mode = CONFIG.MODES[setti
 // ------------------------------------------------------------------ settings and consent
 $("mode").innerHTML = Object.entries(CONFIG.MODES).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join("");
 for (const k of ["mode", "method", "camera"]) { $(k).value = settings[k]; $(k).addEventListener("change", (e) => { settings[k] = e.target.value; store.set("halo_settings", settings); mode = CONFIG.MODES[settings.mode]; }); }
+// Check length as a segmented control: three buttons that drive the hidden <select>, so the rest of the code is unchanged.
+{ const seg = $("modeseg"), paint = () => { [...seg.children].forEach((b) => b.setAttribute("aria-checked", String(b.dataset.k === $("mode").value)));
+    const m = CONFIG.MODES[$("mode").value] || mode; $("t-scan").textContent = `${m.scan} s`; $("t-tests").textContent = m.tests.length === 1 ? "1 test" : `${m.tests.length} tests`; };
+  seg.innerHTML = Object.entries(CONFIG.MODES).map(([k, m]) => { const [, name, mins] = /^(.+?)\s*\((?:about\s*)?(.+?)\)$/.exec(m.label) || [0, m.label, ""]; return `<button type="button" role="radio" data-k="${k}">${name}<small>${mins.replace(/ ?minutes?/, "m")}</small></button>`; }).join("");
+  seg.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $("mode").value = b.dataset.k; $("mode").dispatchEvent(new Event("change")); paint(); }); paint(); }
+
+// The questions use big targets (a stepper and two 1 to 5 scales). Each one writes to the hidden field the results code already reads; unanswered stays empty.
+{ const sh = $("sleephours"), out = $("sleepout"), bump = (d) => { const v = sh.value === "" ? 7.5 : Math.min(16, Math.max(0, Number(sh.value) + d)); sh.value = String(v); out.innerHTML = `<b>${v}</b> hours`; };
+  $("sleepminus").addEventListener("click", () => bump(-0.5)); $("sleepplus").addEventListener("click", () => bump(0.5));
+  for (const box of document.querySelectorAll(".scale")) { const field = $(box.dataset.for);
+    box.innerHTML = [1, 2, 3, 4, 5].map((n) => `<button type="button" role="radio" aria-checked="false" data-v="${n}">${n}</button>`).join("");
+    box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const on = b.getAttribute("aria-checked") === "true";      // tapping the chosen number again clears the answer
+      [...box.children].forEach((c) => c.setAttribute("aria-checked", String(c === b && !on))); field.value = on ? "" : b.dataset.v; }); } }
+document.addEventListener("click", (e) => { if (e.target.closest("button, .btn")) navigator.vibrate?.(8); });      // a light tap on phones that support it
+
 for (const k of ["overlay", "validation", "keepCamera", "finger_step"]) { $(k).checked = !!settings[k]; $(k).addEventListener("change", (e) => { settings[k] = e.target.checked; store.set("halo_settings", settings); }); }
 $("agree").addEventListener("change", (e) => ($("start").disabled = !e.target.checked));
 $("start").addEventListener("click", startScan);
@@ -45,7 +61,7 @@ const ui = {
   step(name, cls, text) { const el = $("st-" + name); if (!el) return; el.className = "step " + cls; if (text) el.textContent = text; },
   log(msg) { const t = Math.round(state.lastT), li = document.createElement("li"); li.innerHTML = `<time>${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}</time><span></span>`; li.lastChild.textContent = msg; $("feed").prepend(li); while ($("feed").children.length > 40) $("feed").lastChild.remove(); },
   once(key, msg) { if (!live.said[key]) { live.said[key] = true; ui.log(msg); } },
-  ring(frac, secs) { $("ringfg").style.strokeDashoffset = String(94.25 * (1 - Math.min(1, Math.max(0, frac)))); ui.set("timer", `${secs} s`); },
+  ring(frac, secs) { $("ringfg").style.strokeDashoffset = String(94.25 * (1 - Math.min(1, Math.max(0, frac)))); ui.set("timer", `${secs} s`); $("ovalwrap")?.style.setProperty("--p", String(Math.min(1, Math.max(0, frac)))); },
   wave(p) { const c = $("wave"), x = c.getContext("2d"), W = c.width, H = c.height; x.clearRect(0, 0, W, H); if (!p || p.length < 10) return; const m = Math.max(...p.map(Math.abs)) || 1; x.strokeStyle = cssv("--blue"); x.lineWidth = 3; x.lineJoin = "round"; x.beginPath(); p.forEach((v, i) => { const px = (i / (p.length - 1)) * W, py = H / 2 - (v / m) * (H / 2 - 10); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); },
   live(t) {                                         // once a second during the scan
     const recent = state.roi.all.filter((s) => s.t >= t - 15), h = recent.length > 90 ? D.estimateHeartRate(recent) : { bpm: null, quality: 0 }, good = h.bpm && h.quality >= Q;
@@ -414,8 +430,11 @@ function results() {
   const sig = (q) => (!scanned ? "no camera scan in this session" : q >= 0.6 ? "good signal" : q >= Q ? "fair signal" : "signal too weak, not reported");
   const vs = (k) => (dev[k] === null ? "" : `; ${dev[k] > 0 ? "+" : ""}${dev[k]} vs your baseline`);
   $("verdict").textContent = { ready: "Ready", caution: "Caution", rest: "Rest advised" }[record.verdict]; $("verdict").className = `verdict ${record.verdict}`;
-  $("score").innerHTML = score.score === null ? "" : `<div class="scoreline"><b>Readiness score ${score.score}</b> / 100</div>` +
-    Object.entries(score.parts).map(([k, v]) => `<div class="part"><span>${k}</span><div class="pbar"><i style="width:${v}%"></i></div><span>${v}</span></div>`).join("");
+  const lvl = (v) => (v >= 75 ? "" : v >= 50 ? "watch" : "act");                                // one status scale everywhere: normal, watch, act
+  $("verdictcard").className = `card verdictcard tint-${record.verdict}`;
+  $("vsub").textContent = a.flags.length ? `${a.flags.length} reading${a.flags.length === 1 ? "" : "s"} pulled your score down` : "Nothing was flagged in this check";
+  $("halo").innerHTML = score.score === null ? "" : haloRing(score.score, record.verdict);
+  $("score").innerHTML = score.score === null ? "" :     Object.entries(score.parts).map(([k, v]) => `<div class="part"><span>${k}</span><div class="pbar"><i class="${lvl(v)}" style="width:${v}%"></i></div><span>${v}</span></div>`).join("");
   const hrSpan = restRoi.all.length > 1 ? restRoi.all[restRoi.all.length - 1].t - restRoi.all[0].t : 0, hrRate = hrSpan ? Math.round(restRoi.all.length / hrSpan) : 0, lightMean = state.light.length ? D.mean(state.light) : 0;
   const hrTip = hrRate && hrRate < 20 ? "The camera delivered too few frames; close other tabs and add light." : lightMean < 70 ? "The face was too dark; face a window or a lamp." : lightMean > 200 ? "The face was over-exposed; move away from direct light." : state.motionFrames / Math.max(1, state.faceFrames) > 0.1 ? "There was too much head movement; rest your elbows and keep still." : "Use even light from the front, keep still and do not talk; laptop cameras in room light are often too noisy.";
   const faceNote = ok(heart) ? ` The face-video estimate was ${Math.round(heart.bpm)} bpm (experimental).` : scanned ? " The face video gave no usable estimate." : "";
@@ -514,4 +533,10 @@ if (params.get("demo") === "scan") {
     ui.ring(t / mode.scan, Math.ceil(mode.scan - t)); if (Math.floor(t) !== lastSec) { lastSec = Math.floor(t); ui.live(t); }
     if (t >= mode.scan) { clearInterval(iv); ui.log("Scan complete"); state.phase = "tests"; state.tScanEnd = t; show("game"); runTests(); }
   }, 100);
+}
+
+/** The score ring: one arc, filled to the score and coloured by the verdict. The number is inside it, so the result never relies on colour alone. */
+function haloRing(total, verdict) {
+  const R = 40, L = 2 * Math.PI * R, col = { ready: "#1a8200", caution: "#c79a00", rest: "#850000" }[verdict] || "#1a8200";
+  return `<svg class="haloring" viewBox="0 0 96 96" role="img" aria-label="Readiness ${total} of 100"><g fill="none" stroke-width="7" transform="rotate(-90 48 48)"><circle class="track" cx="48" cy="48" r="${R}"/><circle cx="48" cy="48" r="${R}" stroke="${col}" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0, Math.min(100, total)) / 100).toFixed(1)} ${L.toFixed(1)}"/></g><text class="num" x="48" y="47" text-anchor="middle">${total}</text><text class="of" x="48" y="63" text-anchor="middle">of 100</text></svg>`;
 }

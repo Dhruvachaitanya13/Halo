@@ -1,20 +1,16 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO health check</title><link rel="stylesheet" href="style.css?v=0.15.0"></head>
+<title>HALO health check</title><meta name="theme-color" content="#000000"><link rel="icon" href="../icon.svg"><link rel="stylesheet" href="style.css?v=0.17.0"></head>
 <body><main>
-<div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO health check</h1><small>Crew health prototype. Not a medical device.</small></div></div>
+<header class="top"><a class="brandmark" href="../" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">HALO</span></a><span class="stepno" id="stepno">Step 1 of 5</span></header>
+<ol class="stepper" id="stepper" aria-label="Progress"><li class="now">Start</li><li>Scan</li><li>Tests</li><li>Questions</li><li>Results</li></ol>
 
-<ol class="stepper" id="stepper" aria-label="Progress"><li class="now">Consent</li><li>Scan</li><li>Tests</li><li>Questions</li><li>Results</li></ol>
-
-<section id="consent" class="card">
-  <h2>Before we start</h2>
-  <p>This check has a camera scan, short thinking tests and two questions about sleep.</p>
-  <ul>
-    <li>The camera estimates heart rate, breathing rate and blinking. The video stays on this device and is not recorded.</li>
-    <li>Only the resulting numbers are saved, under a random session code, with no name.</li>
-    <li>The results are estimates for a demonstration. They are not medical advice.</li>
-  </ul>
-  <label>Check length<select id="mode"></select></label>
+<section id="consent">
+  <h1 class="title">Daily health check</h1><p class="sub">A camera scan, short tests and a few questions. Not a medical device.</p>
+  <div class="info"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6.5" width="12.5" height="11" rx="2.5"/><path d="m15.5 10.5 5-3v9l-5-3"/></svg></span><div><b>Camera scan</b><small>Heart rate, breathing, blinking</small></div><span id="t-scan"></span></div>
+  <div class="info"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg></span><div><b>Reaction tests</b><small>A short docking game</small></div><span id="t-tests"></span></div>
+  <div class="info"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"/></svg></span><div><b>Quick questions</b><small>Sleep, alertness, mood</small></div><span>30 s</span></div>
+  <div class="caps" id="modelabel">Check length</div><div class="seg" id="modeseg" role="radiogroup" aria-labelledby="modelabel"></div><select id="mode" hidden aria-hidden="true"></select>
   <details><summary>More options</summary>
     <label>Heart-rate method<select id="method"><option value="auto">Automatic (tries all, keeps the cleanest)</option><option value="pos">POS</option><option value="chrom">CHROM</option><option value="green">Green channel</option></select></label>
     <label>Camera<select id="camera"><option value="user">Front</option><option value="environment">Back</option></select></label>
@@ -23,68 +19,74 @@
     <label><input type="checkbox" id="finger_step"> Fingertip pulse step after the tests (the reliable heart rate)</label>
     <label><input type="checkbox" id="validation"> Validation mode: I will enter readings from a reference device</label>
   </details>
-  <label><input type="checkbox" id="agree"> I agree to this scan and to my results being saved.</label>
-  <button id="start" disabled>Start the scan</button>
+  <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg><span>No video is saved or sent. Only the resulting numbers are stored, under a random code with no name. They are estimates, not medical advice.</span></p>
+  <input type="checkbox" id="agree" checked hidden>
+  <button id="start">Agree and start</button>
   <small id="prep">Preparing the scanner in the background...</small>
 </section>
 
-<section id="scan" class="card" hidden>
-  <h2>Camera scan</h2>
-  <p>Put your face and upper chest in the frame, in good light. Stay still and breathe normally.</p>
-  <div class="stage"><video id="video" playsinline muted autoplay></video><canvas id="roicanvas"></canvas>
+<section id="scan" hidden>
+  <h1 class="title">Camera scan</h1><p class="sub">Face and upper chest in the frame, in good light.</p>
+  <div class="ovalwrap" id="ovalwrap"><div class="stage"><video id="video" playsinline muted autoplay></video><canvas id="roicanvas"></canvas>
     <div class="hud"><svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15"/><circle class="fg" id="ringfg" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><span id="timer">--</span></div>
-    <div class="rec" id="rec" hidden>LIVE</div></div>
+    <div class="rec" id="rec" hidden>LIVE</div></div></div>
   <div id="status" role="status" aria-live="polite"></div>
-  <div class="steps">
-    <span class="step" id="st-camera">Camera</span><span class="step" id="st-tracker">Face tracker</span><span class="step" id="st-face">Face</span>
-    <span class="step" id="st-light">Lighting</span><span class="step" id="st-still">Stillness</span></div>
-  <div class="tiles">
-    <div class="tile"><b id="hrLive">--</b><span>heart rate, bpm</span><div class="qbar"><i id="hrQ"></i></div></div>
-    <div class="tile"><b id="brLive">--</b><span id="brSrc">breaths per minute</span><div class="qbar"><i id="brQ"></i></div></div>
-    <div class="tile"><b id="blLive">0</b><span>blinks</span></div>
-    <div class="tile"><b id="pcLive">--</b><span>eyes closed, %</span></div>
-    <div class="tile"><b id="exLive" class="txt">--</b><span>expression now</span></div>
-    <div class="tile"><b id="fpsLive">--</b><span>frames per second</span></div>
+  <div class="sheet">
+    <div class="tiles">
+      <div class="tile"><b id="hrLive">--</b><span>Heart rate, bpm</span><div class="qbar"><i id="hrQ"></i></div></div>
+      <div class="tile"><b id="brLive">--</b><span id="brSrc">breaths per minute</span><div class="qbar"><i id="brQ"></i></div></div>
+      <div class="tile"><b id="blLive">0</b><span>Blinks</span></div>
+      <div class="tile"><b id="pcLive">--</b><span>Eyes closed, %</span></div>
+      <div class="tile"><b id="exLive" class="txt">--</b><span>Expression now</span></div>
+      <div class="tile"><b id="fpsLive">--</b><span>Frames per second</span></div>
+    </div>
+    <div class="signal"><b>Signal</b>
+      <span class="step" id="st-camera">Camera</span><span class="step" id="st-tracker">Face tracker</span><span class="step" id="st-face">Face</span>
+      <span class="step" id="st-light">Lighting</span><span class="step" id="st-still">Stillness</span></div>
+    <canvas class="wave" id="wave" width="600" height="140" aria-label="Live pulse signal"></canvas>
+    <ul class="feed" id="feed" aria-live="polite"></ul>
+    <small id="diag" style="margin-top:8px;font-size:11px;word-break:break-word"></small>
   </div>
-  <canvas class="wave" id="wave" width="600" height="140" aria-label="Live pulse signal"></canvas>
-  <ul class="feed" id="feed" aria-live="polite"></ul>
-  <small id="diag" style="margin-top:8px;font-size:11px;word-break:break-word"></small>
   <button id="skip" class="ghost">Skip the scan</button>
 </section>
 
-<section id="game" class="card" hidden>
+<section id="game" hidden>
   <div class="ghead"><div><small class="eyebrow">Docking mission</small><h2 id="gtitle">Mission</h2></div><button id="mute" class="ghost chip" type="button" aria-pressed="false">Sound on</button></div>
   <canvas id="mission" class="mission" tabindex="0" aria-label="Docking mission game. Tap, or press Space, to respond."></canvas>
   <p id="ghelp" class="ghelp" role="status" aria-live="polite"></p>
   <small>These are the thinking tests, played as one flight. Points are for fun; the measurements are your reaction times, taps and steering.</small>
 </section>
 
-<section id="recovery" class="card" hidden>
-  <h2>Recovery check</h2>
-  <p>Tests done. Sit still and look at the screen while your heart rate settles.</p>
+<section id="recovery" hidden>
+  <h1 class="title">Recovery check</h1>
+  <p class="sub">Tests done. Sit still and look at the screen while your heart rate settles.</p>
   <div class="pad done"><span id="rectimer"></span></div>
 </section>
 
-<section id="finger" class="card" hidden>
-  <small class="eyebrow">Heart rate</small><h2>Fingertip pulse</h2>
-  <p>This is the reliable way to read your pulse. Cover the <b>back camera lens</b> completely with a fingertip, press lightly, and keep still for 20 seconds. On a laptop, cover the webcam. If your phone has a light, it switches on.</p>
+<section id="finger" hidden>
+  <h1 class="title">Fingertip pulse</h1>
+  <p class="sub">This is the reliable way to read your pulse. Cover the <b>back camera lens</b> completely with a fingertip, press lightly, and keep still for 20 seconds. On a laptop, cover the webcam. If your phone has a light, it switches on.</p>
   <div class="stage finger"><video id="fvideo" playsinline muted autoplay></video>
     <div class="hud"><svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15"/><circle class="fg" id="fring" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><span id="ftimer">--</span></div></div>
   <div id="fstatus" class="status" role="status" aria-live="polite">Press Start when your finger is ready.</div>
-  <div class="tiles two"><div class="tile"><b id="fbpm">--</b><span>heart rate, bpm</span><div class="qbar"><i id="fq"></i></div></div><div class="tile"><b id="fcover" class="txt">--</b><span>finger on the lens</span></div></div>
-  <canvas class="wave" id="fwave" width="600" height="140" aria-label="Live fingertip pulse signal"></canvas>
+  <div class="sheet"><div class="tiles two"><div class="tile"><b id="fbpm">--</b><span>Heart rate, bpm</span><div class="qbar"><i id="fq"></i></div></div><div class="tile"><b id="fcover" class="txt">--</b><span>Finger on the lens</span></div></div>
+  <canvas class="wave" id="fwave" width="600" height="140" aria-label="Live fingertip pulse signal"></canvas></div>
   <button id="fstart" type="button">Start</button><button id="fskip" class="ghost" type="button">Skip this step</button>
 </section>
 
-<section id="sleep" class="card" hidden>
-  <h2>Last questions</h2>
+<section id="sleep" hidden>
+  <h1 class="title">Three quick questions</h1><p class="sub">All optional.</p>
   <form id="sleepform">
-    <label>How many hours did you sleep last night?<input id="sleephours" type="number" min="0" max="16" step="0.5" inputmode="decimal" placeholder="e.g. 6.5"></label>
-    <label>How alert do you feel right now?
-      <select id="alertness"><option value="">Prefer not to say</option><option value="5">5 - fully alert</option><option value="4">4 - alert</option><option value="3">3 - neither alert nor sleepy</option><option value="2">2 - sleepy</option><option value="1">1 - fighting sleep</option></select></label>
-    <label>How is your mood right now?
-      <select id="mood"><option value="">Prefer not to say</option><option value="5">5 - very good</option><option value="4">4 - good</option><option value="3">3 - neutral</option><option value="2">2 - low</option><option value="1">1 - very low</option></select></label>
-    <div id="valbox" hidden>
+    <div class="q"><b id="q-sleep">Hours of sleep last night</b>
+      <div class="stepperq" role="group" aria-labelledby="q-sleep"><button type="button" id="sleepminus" aria-label="Less sleep">&minus;</button><output id="sleepout" for="sleephours">Not answered</output><button type="button" id="sleepplus" aria-label="More sleep">+</button></div>
+      <input id="sleephours" type="number" min="0" max="16" step="0.5" hidden></div>
+    <div class="q"><b id="q-alert">How alert do you feel?</b>
+      <div class="scale" id="alertscale" role="radiogroup" aria-labelledby="q-alert" data-for="alertness"></div><div class="ends"><span>Fighting sleep</span><span>Fully alert</span></div>
+      <select id="alertness" hidden><option value=""></option><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+    <div class="q"><b id="q-mood">How is your mood?</b>
+      <div class="scale" id="moodscale" role="radiogroup" aria-labelledby="q-mood" data-for="mood"></div><div class="ends"><span>Very low</span><span>Very good</span></div>
+      <select id="mood" hidden><option value=""></option><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+    <div id="valbox" class="q" hidden><b>Reference readings</b>
       <label>Reference heart rate during the scan (bpm)<input id="refhr" type="number" min="30" max="220" step="1" inputmode="numeric"></label>
       <label>Breaths you counted per minute<input id="refbr" type="number" min="4" max="60" step="1" inputmode="numeric"></label>
     </div>
@@ -94,15 +96,16 @@
 
 <section id="results" hidden>
   <div class="sim" id="simnote" hidden>SIMULATED INPUT. These numbers come from test signals, not from a person.</div>
-  <div class="card"><div id="verdict" class="verdict"></div><div id="score"></div><small class="center">Screening summary from experimental rules. It flags; it does not diagnose.</small></div>
-  <div class="card" id="rows"></div>
+  <div class="card verdictcard" id="verdictcard"><div id="halo"></div><div><div id="verdict" class="verdict"></div><div id="vsub"></div></div><ul id="flags"></ul></div>
+  <div class="card"><h2>What makes up the score?</h2><div id="score"></div><small>Screening summary from experimental rules. It flags; it does not diagnose.</small></div>
+  <div class="card"><h2>Your readings</h2><div id="rows"></div></div>
   <div class="card"><h2>Heart rate during the scan</h2><canvas id="chart" hidden></canvas><small id="grade"></small></div>
-  <div class="card"><h2>Flagged</h2><ul id="flags"></ul></div>
-  <div class="card"><h2>Trends on this device</h2><div id="trends"></div></div>
-  <div class="card"><h2>Unusual readings (machine learning)</h2><div id="ml"></div><small>Experimental. The model learns only from this scan and your own earlier checks.</small></div>
-  <div class="card"><p id="saved"></p><p id="agentmsg" hidden></p><div id="agentbox" hidden><span class="tag live" id="agentchip"></span><ul id="agentnotes"></ul><a class="btn help" id="helplink" href="../console.html">I need help: start the crew SOS</a><a class="btn ghost" id="consolelink" href="../console.html">Open the crew console</a><a class="btn ghost" href="../assistant.html?q=my%20last%20check">Ask HALO about this check</a></div><button id="download" class="ghost">Download my results (JSON)</button><button id="csv" class="ghost">Download heart-rate series (CSV)</button>
-    <button id="reset" class="ghost">Clear my baseline on this device</button><a class="btn" href="scan.html">Run another check</a></div>
+  <div class="card"><h2>Trends</h2><div id="trends"></div></div>
+  <div class="card"><h2>Unusual readings</h2><div id="ml"></div><small>Pattern check (experimental). The model learns only from this scan and your own earlier checks.</small></div>
+  <div class="card"><p id="saved"></p><p id="agentmsg" hidden></p><div id="agentbox" hidden><span class="tag live" id="agentchip" style="margin-left:0"></span><ul id="agentnotes"></ul><a class="btn help" id="helplink" href="../console.html">I need help: start the crew SOS</a><a class="btn ghost" id="consolelink" href="../console.html">Open Crew Control</a><a class="btn ghost" href="../assistant.html?q=my%20last%20check">Ask HALO about this check</a></div></div>
+  <div class="actions"><button id="download">Download report</button><a class="btn" href="scan.html">Check again</a></div>
+  <button id="csv" class="ghost">Download heart-rate series (CSV)</button><button id="reset" class="ghost">Clear my baseline on this device</button>
 </section>
 
 <section id="error" class="card" hidden><h2>Something went wrong</h2><p id="errmsg"></p><a class="btn" href="">Try again</a></section>
-</main><script type="module" src="js/app.js?v=0.15.0"></script></body></html>
+</main><script type="module" src="js/app.js?v=0.17.0"></script></body></html>

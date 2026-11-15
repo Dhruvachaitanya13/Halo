@@ -250,3 +250,29 @@ Heart rate is now read from a fingertip, which is the reliable way; the face vid
 - **Face video is stricter.** A rate that does not stay steady through the scan is withheld (`details.face_heart.steady`). This removes readings like the 46 and 53 bpm seen earlier, at the cost of fewer face readings.
 - The step can be switched off under More options, and `scan.html?demo=finger` runs it on its own.
 - Checked: 31 unit tests, including beat-shaped fingertip signals at 52, 78 and 132 bpm, an uncovered lens, a dark lens, and a covered lens with no pulse (0 false readings in 30 runs); the step run in headless Chromium on a synthetic fingertip video at 84 bpm, which it read as 84. Not checked: a real fingertip on a real phone. In dim light without the phone's light the picture can be too dark, and the step then says so and keeps no value.
+
+## Version 0.16
+
+The look now follows the team's Figma file ("HALO - Crew Health", design system v3). Nothing about what is measured, scored, saved or sent has changed.
+
+- `style.css` carries the Figma tokens: dark surfaces, one accent, status colours, Geist and Geist Mono, 20 px cards, 56 px pill buttons, 52 px minimum touch targets. The old variable names are kept, so the canvases and the other pages pick the new values up.
+- Check length is a three-way segmented control. It drives the same hidden `<select>`, so settings are stored as before.
+- The result opens with the halo ring: one arc per scored area, filled in proportion to that area's score, with the verdict and score under it. The bars below use the same normal, watch and act colours.
+- The status line during the scan is the HALO voice bar.
+- `console.html`, `assistant.html` and `index.html` use the same system: accent chat bubbles, a pill composer, a green Done button and a 2 x 2 action grid in the SOS checklist.
+
+Not taken from Figma: screens that would change behaviour (the "no questions" flow, inferred sleep and stress, guided actions, the ground link). The second Figma file could not be opened and was not used.
+
+## Version 0.17
+
+The interface now follows the team's "HALO - NASA Challenge" Figma screens (supplied as PDF): a black page, white cards, violet actions, red for SOS, the serif HALO mark. This replaces the 0.16 look. What is measured, scored, saved and sent is unchanged.
+
+- Start: three rows say what the check contains and how long each part takes for the chosen length; one "Agree and start" button. The consent text sits directly above it.
+- Scan: the camera sits in an oval whose edge fills as the scan runs; live readings are on a white sheet below, with the signal checks as chips.
+- Questions: a stepper for sleep and two 1 to 5 scales, in place of a number box and menus. They write to the same fields. Tapping a chosen number again clears it; unanswered stays unanswered.
+- Results: one ring with the score, the verdict, and the readings that pulled it down, in a card tinted by verdict. Then "What makes up the score?", the readings, chart and trends.
+- Talk to HALO (`assistant.html`): light page, a starter screen with four things to ask, black and violet-outlined bubbles, a "Talk by phone" panel behind the phone button, an SOS button that opens the crew SOS.
+- Crew Control (`console.html`): crew as white rows with a status pill, SOS as a black one-step-at-a-time screen with Done / Can't do / Changed / Skip.
+- Small things borrowed from widely used apps: switches in place of checkboxes, a loading placeholder for the crew list, a light vibration on taps where the phone supports it, a page icon and theme colour.
+
+Not built from the Figma file, because each needs new behaviour or data: "Anything bothering you right now?", nudge and snooze sheets, the end-of-checklist log, the full-screen voice mode, and per-person vitals such as blood oxygen (a camera cannot measure it).

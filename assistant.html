@@ -1,64 +1,89 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Talk to HALO</title><link rel="stylesheet" href="scan/style.css?v=0.15.0">
+<title>Talk to HALO</title><meta name="theme-color" content="#ffffff"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.17.0">
 <style>
-  html, body { height: 100% } main { max-width: 720px; display: flex; flex-direction: column; height: 100dvh; padding-bottom: 12px }
-  .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font: 11px/1.4 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
-  .bar a { color: var(--blue) } .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line2); margin-right: 6px; vertical-align: 1px } .dot.ok { background: var(--green) } .dot.bad { background: var(--red) }
-  .channels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px }
-  .ch { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--card); font-size: 13px; color: var(--dim) } .ch b { display: block; color: var(--text); font-size: 14px }
-  .ch.on { border-color: var(--green) } .ch .st { font: 700 10px/1.6 var(--mono); letter-spacing: .5px; text-transform: uppercase } .ch.on .st { color: var(--green) }
-  @media (max-width: 560px) { .channels { grid-template-columns: 1fr } }
-  .chat { flex: 1; min-height: 160px; margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); overflow-y: auto; display: flex; flex-direction: column; gap: 10px }
-  .msg { max-width: 86%; padding: 10px 13px; border-radius: 12px; font-size: 15.5px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word }
-  .msg.you { align-self: flex-end; background: var(--ink); color: var(--on-ink); border-bottom-right-radius: 4px }
-  .msg.halo { align-self: flex-start; background: var(--card2); border: 1px solid var(--line); border-bottom-left-radius: 4px }
-  .msg.halo.sos { border-color: var(--red); background: var(--red-bg) } .msg.sys { align-self: center; font: 11px/1.5 var(--mono); color: var(--dim); text-align: center; max-width: 100% }
-  .msg small { margin-top: 6px; font: 10.5px/1.4 var(--mono); letter-spacing: .3px; text-transform: uppercase; opacity: .7 }
-  .typing { align-self: flex-start; color: var(--dim); font: 12px/1 var(--mono) }
-  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none } .chips::-webkit-scrollbar { display: none }
-  .chips button { width: auto; margin: 0; flex: none; padding: 8px 13px; border-radius: 999px; font: 600 13px/1 var(--sans) } .chips button.sos { border-color: var(--red); color: var(--red) }
-  .composer { display: flex; gap: 8px; align-items: center; margin-top: 8px }
-  .composer input { flex: 1; min-width: 0; font: 16px/1.3 var(--sans); padding: 13px 14px; border-radius: 999px; border: 1px solid var(--line2); background: var(--card); color: var(--text) }
-  .composer input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg) }
-  .round { width: 48px; height: 48px; flex: none; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; position: relative } .round svg { width: 22px; height: 22px; fill: currentColor }
-  .round.listening { background: var(--red); border-color: var(--red); color: #fff } .round.listening::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--red); animation: ring 1.2s infinite }
-  @keyframes ring { from { opacity: .8; transform: scale(1) } to { opacity: 0; transform: scale(1.3) } } @media (prefers-reduced-motion: reduce) { .round.listening::after { animation: none } }
-  .opts { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 8px; font-size: 13px; color: var(--dim) } .opts label { margin: 0; font-weight: 500; font-size: 13px }
-  .call { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card) }
-  .call div { flex: 1; font-size: 14px } .call b { display: block } .call small { font-size: 12px } .call button { width: auto; margin: 0; padding: 11px 16px } .call.live { border-color: var(--green); background: var(--green-bg) }
-  .hang { background: var(--red); border-color: var(--red); color: #fff }
+  html, body { height: 100% } main { display: flex; flex-direction: column; height: 100dvh; padding-bottom: 12px }
+  .wordmark { font-size: 25px } .tools { display: flex; gap: 10px; flex: none }
+  .iconbtn { width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: #d9d9d9; border-color: #d9d9d9; color: #0e0e0e; text-decoration: none; font: 700 12px/1 var(--sans); letter-spacing: .04em }
+  .iconbtn svg, .round svg, .hello .cards svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+  .iconbtn.sos { background: var(--sos); border-color: var(--sos); color: #fff }
+  .iconbtn[aria-expanded=true] { background: var(--violet); border-color: var(--violet); color: #fff }
+  .conn { margin: 2px 0 0 48px; min-height: 24px } .conn .pill { font-weight: 500; font-size: 14px; padding: 4px 9px } .conn .pill.bad { background: #f3e5e5; color: #850000 } .conn .pill.wait { background: #ededed; color: #63636b }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px; vertical-align: 2px }
+  /* Talk by phone: the same assistant by call or text */
+  .phonesheet { margin-top: 12px; padding: 16px; border-radius: var(--r); background: #fff; border: 1px solid var(--violet-line); box-shadow: 0 10px 30px rgba(20, 10, 60, .12) }
+  .phonesheet h2 { margin: 0 } .phonesheet > small { font-size: 14px; color: var(--body); margin-bottom: 10px }
+  .ch, .call { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 12px 14px; border: 1px solid #d9d9d9; border-radius: var(--r2); background: #ededed; font-size: 14px; color: var(--dim) }
+  .ch b, .call b { display: block; color: var(--text); font: 700 16px/1.3 var(--sans) } .ch > div, .call > div { flex: 1; min-width: 0 } .call small { font-size: 13px }
+  .ch .st { font: 600 12px/1.4 var(--sans); white-space: nowrap } .ch.on .st { color: var(--green) }
+  .call button { width: auto; margin: 0; min-height: 44px; padding: 10px 16px; font-size: 15px } .call.live { border-color: var(--green); background: var(--green-bg) }
+  .hang { background: var(--sos); border-color: var(--sos); color: #fff }
+  /* Conversation */
+  .chat { flex: 1; min-height: 160px; margin-top: 10px; padding: 6px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px }
+  .msg { max-width: 86%; padding: 11px 14px; border-radius: 14px; font: 400 15.5px/1.4 var(--sans); white-space: pre-wrap; word-wrap: break-word }
+  .msg.you { align-self: flex-end; background: #000; color: #fff; border-bottom-right-radius: 4px }
+  .msg.halo { align-self: flex-start; background: #fff; border: 1.5px solid var(--violet-line); border-bottom-left-radius: 4px; color: var(--text) }
+  .msg.halo.sos { border-color: var(--sos); background: #f3e5e5 } .msg.sys { align-self: center; font-size: 13px; color: var(--dim); text-align: center; max-width: 100%; padding: 2px 8px }
+  .msg small { margin-top: 6px; font-size: 12px; color: var(--dim) }
+  .typing { align-self: flex-start; color: var(--dim); font-size: 14px } .typing::after { content: ""; display: inline-block; width: 18px; text-align: left; animation: dots 1.2s steps(4) infinite }
+  @keyframes dots { 0% { content: "" } 25% { content: "." } 50% { content: ".." } 75% { content: "..." } }
+  /* Empty state: who HALO is and four things to ask */
+  .hello { margin: auto 0; text-align: center; padding: 8px 0 } .hello .logo { width: 104px; height: 104px; margin: 0 auto 14px } .hello .logo::after { border-width: 3px }
+  .hello h2 { font: 700 26px/1.2 var(--sans); margin: 0 } .hello p { margin: 6px auto 18px; max-width: 320px }
+  .hello .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left }
+  .hello .cards button { margin: 0; min-height: 88px; padding: 12px; text-align: left; background: #fff; border: 1.5px solid var(--violet-line); border-radius: var(--r2); color: var(--text); font: 700 16px/1.3 var(--sans); display: block }
+  .hello .cards button small { font: 400 15px/1.3 var(--sans); color: var(--body); margin-top: 6px } .hello .cards button:hover:not(:disabled) { filter: none; border-color: var(--violet) }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 2px; scrollbar-width: none } .chips::-webkit-scrollbar { display: none }
+  .chips button { width: auto; margin: 0; flex: none; min-height: 40px; padding: 8px 14px; border-radius: 10px; font: 500 15px/1.2 var(--sans); background: #fff; color: var(--text); border: 1px solid var(--line2) } .chips button.sos { border-color: var(--sos); color: var(--sos) }
+  .composer { display: flex; gap: 6px; align-items: center; margin-top: 8px; padding: 6px 6px 6px 4px; border: 1.5px solid var(--violet); border-radius: 999px; background: #fff }
+  .composer input { flex: 1; min-width: 0; font: 16px/1.3 var(--sans); min-height: 40px; margin: 0; padding: 8px 4px 8px 14px; border: 0; background: transparent; color: var(--text); box-shadow: none }
+  .composer input:focus { box-shadow: none } .composer input::placeholder { color: var(--dim) } .composer:focus-within { box-shadow: 0 0 0 3px rgba(99, 54, 246, .2) }
+  .round { width: 42px; height: 42px; min-height: 42px; flex: none; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; position: relative }
+  .round.mic { background: var(--violet-line); border-color: var(--violet-line); color: var(--violet) } #send { background: #000; border-color: #000; color: #fff }
+  .round.listening { background: var(--sos); border-color: var(--sos); color: #fff } .round.listening::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--sos); animation: ring 1.2s infinite }
+  @keyframes ring { from { opacity: .8; transform: scale(1) } to { opacity: 0; transform: scale(1.3) } } @media (prefers-reduced-motion: reduce) { .round.listening::after, .typing::after { animation: none } }
+  .opts { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 14px; color: var(--dim) } .opts label { margin: 0; font-weight: 500; font-size: 14px; display: flex; align-items: center }
+  .foot { text-align: center; margin-top: 10px; color: var(--body) }
 </style></head>
-<body><main>
-<div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>Talk to HALO</h1><small>One assistant by chat, voice, text message and phone. Not a medical device.</small></div></div>
-<div class="bar"><span><i class="dot" id="dot"></i><span id="conn">Connecting...</span></span><span><a href="console.html">Crew console</a> &nbsp; <a href="./">Project page</a></span></div>
+<body class="light"><main>
+<header class="top"><a class="brandmark" href="./" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">Talk to HALO</span></a>
+  <span class="tools"><button class="iconbtn" id="phonebtn" type="button" aria-label="Talk by phone" aria-expanded="false" aria-controls="phonesheet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2Z"/></svg></button>
+  <a class="iconbtn sos" href="console.html?sos=1" aria-label="Start the crew SOS">SOS</a></span></header>
+<div class="conn"><span class="pill wait" id="connpill"><i class="dot" id="dot"></i><span id="conn">Connecting...</span></span></div>
 
-<div class="channels" aria-label="Ways to reach HALO">
-  <div class="ch on" id="ch-chat"><b>Chat and browser voice</b><span class="st">On this page</span></div>
-  <div class="ch" id="ch-call"><b>Call HALO</b><span class="st" id="callst">Checking...</span></div>
-  <div class="ch" id="ch-sms"><b>Text message</b><span class="st" id="smsst">Checking...</span></div>
+<div class="phonesheet" id="phonesheet" hidden>
+  <h2>Talk by phone</h2><small>Same assistant, same conversation.</small>
+  <div class="ch on" id="ch-chat"><div><b>Chat and browser voice</b>Type, or tap the microphone</div><span class="st">On this page</span></div>
+  <div class="ch" id="ch-call"><div><b>Phone call</b>HALO by voice on a phone</div><span class="st" id="callst">Checking...</span></div>
+  <div class="ch" id="ch-sms"><div><b>Text message</b>Alerts and questions by text</div><span class="st" id="smsst">Checking...</span></div>
+  <div class="call" id="callbar" hidden><div><b id="calltitle">Call HALO from this page</b><small id="callsub">A phone call through Twilio. Twilio listens and speaks; your microphone is used.</small></div>
+    <button id="callbtn" type="button">Call HALO</button><button id="mutebtn" class="ghost" type="button" hidden>Mute</button></div>
+  <div class="call" id="ringbar" hidden><div><b>Have HALO call the mission phone</b><small id="ringsub">HALO rings the phone number set for this mission and you talk to the same assistant by voice.</small></div>
+    <button id="ringbtn" type="button">Call me</button></div>
 </div>
 
-<div class="call" id="callbar" hidden><div><b id="calltitle">Call HALO from this page</b><small id="callsub">A phone call through Twilio. Twilio listens and speaks; your microphone is used.</small></div>
-  <button id="callbtn" type="button">Call HALO</button><button id="mutebtn" class="ghost" type="button" hidden>Mute</button></div>
-
-<div class="call" id="ringbar" hidden><div><b>Have HALO call the mission phone</b><small id="ringsub">HALO rings the phone number set for this mission and you talk to the same assistant by voice.</small></div>
-  <button id="ringbtn" type="button">Call me</button></div>
-
-<div class="chat" id="chat" role="log" aria-live="polite" aria-label="Conversation with HALO"></div>
+<div class="chat" id="chat" role="log" aria-live="polite" aria-label="Conversation with HALO">
+  <div class="hello" id="hello"><div class="logo" aria-hidden="true"></div><h2>Hi, I'm HALO</h2><p>Ask about the crew, your health checks or space weather.</p>
+    <div class="cards">
+      <button type="button" data-q="Crew status">Crew status<small>Who has checked in today</small></button>
+      <button type="button" data-q="Daily report">Today's report<small>Summary for the whole crew</small></button>
+      <button type="button" data-q="My last check">My last check<small>Score and what changed</small></button>
+      <button type="button" data-q="Space weather">Space weather<small>Radiation and forecast</small></button>
+    </div></div>
+</div>
 <div class="chips" id="chips"></div>
 <form class="composer" id="form">
-  <button class="round ghost" id="mic" type="button" aria-label="Speak to HALO"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v5a4 4 0 0 0 4 4Zm7-4a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.08A7 7 0 0 0 19 11Z"/></svg></button>
-  <input id="q" autocomplete="off" maxlength="500" placeholder="Ask HALO, or say what is happening" aria-label="Message to HALO">
-  <button class="round" id="send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3 10l12 2-12 2 .4 6.4Z"/></svg></button>
+  <input id="q" autocomplete="off" maxlength="500" placeholder="Ask HALO anything" aria-label="Message to HALO">
+  <button class="round mic" id="mic" type="button" aria-label="Speak to HALO"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>
+  <button class="round" id="send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
 </form>
 <div class="opts"><label><input type="checkbox" id="speak"> Read replies aloud</label><label><input type="checkbox" id="hands"> Hands-free</label><span id="vnote"></span></div>
-<small style="margin-top:8px">HALO answers only from the crew agent and the project database, and says so when it has no answer. NASA data shown is historical (May 2024).</small>
+<small class="foot">HALO only answers from crew data and the project database. NASA data is from May 2024.</small>
 </main>
 <script src="vendor/twilio.min.js?v=2.19.0"></script>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.15.0";
-import { createVoice } from "./scan/js/voice.js?v=0.15.0";
+import { CONFIG } from "./scan/js/config.js?v=0.17.0";
+import { createVoice } from "./scan/js/voice.js?v=0.17.0";
 const QS = new URLSearchParams(location.search), API = (QS.get("assistant") || CONFIG.ASSISTANT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 let sender = ""; try { sender = localStorage.getItem("halo_chat_id") || ""; if (!sender) { sender = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem("halo_chat_id", sender); } } catch { sender = String(Date.now()); }
@@ -67,7 +92,7 @@ const SOS = ["emergency", "sos_step", "sos_question"];
 function add(text, who, meta) {
   const m = document.createElement("div"); m.className = "msg " + who; m.textContent = text;
   if (meta) { const s = document.createElement("small"); s.textContent = meta; m.append(s); }
-  $("chat").append(m); $("chat").scrollTop = $("chat").scrollHeight; return m;
+  $("hello")?.remove(); $("chat").append(m); $("chat").scrollTop = $("chat").scrollHeight; return m;
 }
 function chips(list) {
   $("chips").replaceChildren(...(list || []).map((t) => { const b = document.createElement("button"); b.type = "button"; b.className = "ghost" + (t === "Emergency" ? " sos" : ""); b.textContent = t;
@@ -76,7 +101,7 @@ function chips(list) {
 const voice = createVoice({
   onInterim: (t) => { $("q").value = t; },
   onHeard: (t) => { $("q").value = ""; ask(t); },
-  onState: (st) => { $("mic").className = "round ghost" + (st === "listening" ? " listening" : ""); if (st === "denied") $("vnote").textContent = "Microphone not allowed for this page."; },
+  onState: (st) => { $("mic").className = "round mic" + (st === "listening" ? " listening" : ""); if (st === "denied") $("vnote").textContent = "Microphone not allowed for this page."; },
 });
 voice.setEnabled(false);
 if (!voice.canListen) { $("mic").disabled = true; $("hands").disabled = true; $("vnote").textContent = "This browser cannot listen; type instead."; }
@@ -88,7 +113,7 @@ $("hands").onchange = (e) => { if (e.target.checked && !$("speak").checked && vo
 let busy = false;
 async function ask(text) {
   text = String(text || "").trim(); if (!text || busy || !API) return; busy = true;
-  add(text, "you"); const dots = document.createElement("div"); dots.className = "typing"; dots.textContent = "HALO is checking..."; $("chat").append(dots); $("chat").scrollTop = $("chat").scrollHeight;
+  $("hello")?.remove(); add(text, "you"); const dots = document.createElement("div"); dots.className = "typing"; dots.textContent = "HALO is checking..."; $("chat").append(dots); $("chat").scrollTop = $("chat").scrollHeight;
   try {
     const r = await fetch(API + "/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, sender, channel: "web" }) });
     const j = await r.json().catch(() => null); dots.remove();
@@ -131,19 +156,23 @@ $("ringbtn").onclick = async () => {
   setTimeout(() => ($("ringbtn").disabled = false), 60000);
 };
 
+// The four starter cards and the phone sheet
+for (const b of document.querySelectorAll("#hello [data-q]")) b.onclick = () => ask(b.dataset.q);
+$("phonebtn").onclick = () => { const open = $("phonesheet").hidden; $("phonesheet").hidden = !open; $("phonebtn").setAttribute("aria-expanded", String(open)); };
+document.addEventListener("click", (e) => { if (e.target.closest("button, .btn")) navigator.vibrate?.(8); });
+
 async function init() {
-  if (!API) { $("dot").className = "dot bad"; $("conn").textContent = "The assistant service address is not set (ASSISTANT_URL in scan/js/config.js)."; $("callst").textContent = $("smsst").textContent = "Not set up";
+  if (!API) { $("connpill").className = "pill bad"; $("conn").textContent = "assistant address not set"; $("callst").textContent = $("smsst").textContent = "Not set up";
     add("The HALO assistant service has not been deployed yet, so I cannot answer here. The crew console still works.", "sys"); $("q").disabled = $("send").disabled = $("mic").disabled = true; return; }
   try {
-    const h = await (await fetch(API + "/health")).json(); $("dot").className = "dot ok"; $("conn").textContent = "HALO assistant connected";
+    const h = await (await fetch(API + "/health")).json(); $("connpill").className = "pill normal"; $("conn").textContent = "connected";
     const sms = h.twilio_configured, web = h.browser_calling && typeof Twilio !== "undefined";
     $("ch-sms").className = "ch" + (sms ? " on" : ""); $("smsst").textContent = sms ? "On: text the HALO number" : "Not set up";
     const dialIn = h.can_receive_calls, out = h.can_call_out;
     $("ch-call").className = "ch" + (web || dialIn || out ? " on" : ""); $("callst").textContent = web ? "On: button below" : dialIn ? "On: dial the HALO number" : out ? "On: HALO calls you" : "Not set up"; $("callbar").hidden = !web; $("ringbar").hidden = !out;
     if (sms && !dialIn) $("smsst").textContent = "Outgoing alerts only";
-  } catch { $("dot").className = "dot bad"; $("conn").textContent = "The HALO assistant cannot be reached right now."; $("callst").textContent = $("smsst").textContent = "Unknown"; }
-  add("I am HALO. Ask about the crew, the daily report, your latest health check, or NASA radiation and space weather. In an emergency, say what is happening.", "halo");
-  chips(["Crew status", "Daily report", "My last check", "Radiation on 10 May", "Forecast on 10 May", "Space weather", "Emergency"]);
+  } catch { $("connpill").className = "pill bad"; $("conn").textContent = "cannot reach HALO right now"; $("callst").textContent = $("smsst").textContent = "Unknown"; }
+  chips(["Radiation on 10 May", "Forecast on 10 May", "Emergency"]);
   const q = QS.get("q"); if (q) ask(q);
 }
 init();

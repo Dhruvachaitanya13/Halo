@@ -1,78 +1,88 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO crew console</title><link rel="stylesheet" href="scan/style.css?v=0.15.0">
+<title>HALO Crew Control</title><meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.17.0">
 <style>
-  main { max-width: 760px }
-  .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; font: 11px/1.4 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line2); margin-right: 6px; vertical-align: 1px }
-  .dot.ok { background: var(--green) } .dot.bad { background: var(--red) }
-  .crews { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 14px }
-  .crew { text-align: left; margin: 0; padding: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: var(--r); font: inherit; cursor: pointer }
-  .crew:hover:not(:disabled) { opacity: 1; border-color: var(--text) } .crew.sel { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-bg) }
-  .crew b { display: block; font: 700 16px/1.3 var(--mono) } .crew small { margin-top: 4px; font-size: 12px }
-  .chip { display: inline-block; font: 700 10px/1 var(--mono); letter-spacing: .6px; text-transform: uppercase; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line2); color: var(--dim); margin-top: 8px }
-  .chip.normal, .chip.ready { color: var(--green); border-color: var(--green); background: var(--green-bg) }
-  .chip.caution, .chip.watch { color: var(--amber); border-color: var(--amber); background: var(--amber-bg) }
-  .chip.alert, .chip.rest { color: var(--red); border-color: var(--red); background: var(--red-bg) }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px } @media (max-width: 560px) { .two { grid-template-columns: 1fr } }
-  .two button { margin-top: 0 }
-  .steptext { font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: -.3px; margin: 10px 0 6px }
-  .src { font: 11px/1.5 var(--mono); color: var(--dim) }
-  .prog { height: 6px; background: var(--card2); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; margin: 10px 0 }
-  .prog i { display: block; height: 100%; background: var(--text); width: 0; transition: width .3s }
-  table.v { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px } table.v td { padding: 7px 0; border-bottom: 1px solid var(--line) } table.v tr:last-child td { border-bottom: 0 }
-  table.v td:last-child { text-align: right; font: 700 14px/1.4 var(--mono) } table.v small { font-size: 11px }
-  .ask { display: flex; gap: 8px; margin-top: 12px } .ask input { flex: 1; font: 16px/1.3 var(--sans); padding: 12px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card2); color: var(--text) } .ask button { width: auto; margin: 0 }
-  .answer { background: var(--card2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 15px }
-  .label { font: 700 10.5px/1.4 var(--mono); letter-spacing: .6px; text-transform: uppercase; color: var(--amber) }
-  .scenes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px } .scenes button { width: auto; margin: 0 }
-  h3 { font-size: 15px; margin: 16px 0 4px }
-  .voice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card2) }
-  .mic { width: 56px; height: 56px; flex: none; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--ink); border-color: var(--ink); position: relative }
-  .mic svg { width: 24px; height: 24px; fill: var(--on-ink) }
-  .mic.listening { background: var(--red); border-color: var(--red) } .mic.listening::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--red); animation: ring 1.2s infinite }
-  .mic.speaking { background: var(--blue); border-color: var(--blue) }
+  .head { margin: 18px 0 14px } .head h1 { font: 700 21px/1.2 var(--sans) } .head p { margin: 2px 0 0; font-size: 15px; color: var(--body) }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line2); margin-right: 6px; vertical-align: 1px } .dot.ok { background: var(--green) } .dot.bad { background: var(--red) }
+  .links { display: flex; gap: 16px; font-size: 14px; margin-top: 6px }
+  /* Crew list: one white row per person */
+  .crews { display: grid; gap: 10px }
+  .crew { position: relative; display: block; text-align: left; margin: 0; padding: 12px 40px 12px 14px; min-height: 0; border: 2px solid #fff; background: #fff; color: #0e0e0e; border-radius: var(--r2); font: inherit; cursor: pointer; color-scheme: light }
+  .crew::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; border-right: 2px solid #8a8a92; border-bottom: 2px solid #8a8a92; transform: translateY(-50%) rotate(-45deg) }
+  .crew:hover:not(:disabled) { filter: none; border-color: var(--violet-line) } .crew.sel { border-color: var(--violet) }
+  .crew b { display: block; font: 700 16px/1.3 var(--sans) } .crew small { font-size: 13px; color: #63636b } .crew small + small { font-size: 14.5px; color: #0e0e0e; margin-top: 4px }
+  .chip { display: inline-block; font: 700 12px/1 var(--sans); padding: 5px 9px; border-radius: 999px; background: #ededed; color: #0e0e0e; white-space: nowrap } .chip::first-letter { text-transform: uppercase }
+  .crew .chip { position: absolute; right: 40px; top: 12px }
+  .chip.normal, .chip.ready { background: #ebffe7; color: #1a8200 } .chip.caution, .chip.watch { background: #fff1cc; color: #8a6100 } .chip.alert, .chip.rest { background: #f3e5e5; color: #850000 }
+  .skel { height: 76px; border-radius: var(--r2); background: linear-gradient(90deg, #1c1c1c 25%, #2a2a2a 37%, #1c1c1c 63%) 0 0 / 400% 100%; animation: shimmer 1.4s infinite } @keyframes shimmer { from { background-position: 100% 0 } to { background-position: 0 0 } } @media (prefers-reduced-motion: reduce) { .skel { animation: none } }
+  #reportcard .chip { margin: 2px 0 6px }
+  /* Crew SOS: black, one step at a time */
+  #soscard { margin-top: 22px } #soscard h2 { font-size: 21px }
+  .sospill { display: inline-block; font: 700 12px/1 var(--sans); letter-spacing: .06em; padding: 7px 11px; border-radius: 999px; background: var(--sos); color: #fff; margin-bottom: 10px } .sospill::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #fff; margin-right: 6px }
+  .voice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 4px; padding: 14px; border: 1px solid #3a2a8a; border-radius: var(--r2); background: var(--blue-bg) }
+  .mic { width: 52px; height: 52px; min-height: 52px; flex: none; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--violet); border-color: var(--violet); position: relative }
+  .mic svg { width: 24px; height: 24px; fill: #fff }
+  .mic.listening { background: var(--sos); border-color: var(--sos) } .mic.listening::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--red); animation: ring 1.2s infinite }
+  .mic.speaking { background: var(--ok-fill); border-color: var(--ok-fill) }
   @keyframes ring { from { opacity: .8; transform: scale(1) } to { opacity: 0; transform: scale(1.35) } } @media (prefers-reduced-motion: reduce) { .mic.listening::after { animation: none } }
-  .vtext { flex: 1; min-width: 180px } .vtext b { display: block; font: 700 11px/1.5 var(--mono); letter-spacing: .5px; text-transform: uppercase; color: var(--dim) } .vtext span { font-size: 15px }
-  .vopts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--dim) } .vopts label { margin: 0; font-weight: 500; font-size: 13px }
-  .help { background: var(--red); border-color: var(--red); color: #fff }
+  .vtext { flex: 1; min-width: 180px } .vtext b { display: block; font: 700 12px/1.5 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--blue) } .vtext span { font-size: 15px; color: var(--text) }
+  .vopts { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; width: 100% } .vopts label { margin: 0; font-weight: 500; font-size: 14px; color: var(--body); display: flex; align-items: center }
+  #types { display: grid; gap: 0; background: #fff; border-radius: var(--r2); padding: 4px 14px; margin-top: 10px; color-scheme: light }
+  #types button { margin: 0; min-height: 48px; padding: 12px 22px 12px 0; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #e8e8ec; border-radius: 0; color: #0e0e0e; font: 700 16px/1.3 var(--sans); position: relative }
+  #types button:last-child { border-bottom: 0 } #types button::after { content: ""; position: absolute; right: 4px; top: 50%; width: 7px; height: 7px; border-right: 2px solid #8a8a92; border-bottom: 2px solid #8a8a92; transform: translateY(-50%) rotate(-45deg) }
+  .label { display: inline-block; font: 600 12px/1.4 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--amber); margin-top: 12px }
+  .prog { height: 3px; background: #3a3a3a; border-radius: 2px; overflow: hidden; margin: 10px 0 14px } .prog i { display: block; height: 100%; background: var(--sos); width: 0; transition: width .3s }
+  #scount { font: 600 12px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--body) }
+  .steptext { font: 700 23px/1.25 var(--sans); letter-spacing: -.2px; color: var(--text); margin: 10px 0 8px } .src { font-size: 13px; color: var(--dim); margin-bottom: 14px }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px } .two button { margin: 0 }
+  .acts button { min-height: 60px; background: #2a2a2a; border-color: #2a2a2a; color: #fff; font: 700 17px/1.2 var(--sans); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 6px }
+  .acts svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round }
+  .acts #a-done { background: var(--ok-fill); border-color: var(--ok-fill) } .acts #a-condition_changed { color: #ff9b93 }
+  .panel { background: #fff; color: #0e0e0e; border-radius: var(--r2); padding: 14px 16px; margin-top: 12px }
+  .panel h3 { margin-top: 0 } table.v { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 6px } table.v td { padding: 8px 0; border-bottom: 1px solid var(--line) } table.v tr:last-child td { border-bottom: 0 }
+  table.v td:last-child { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums } table.v small { font-size: 12px }
+  .ask { display: flex; gap: 8px; margin-top: 10px } .ask input { flex: 1; min-width: 0; margin: 0; border-radius: 999px; padding: 11px 16px; background: #fff; border-color: #fff; color: #0e0e0e } .ask button { width: auto; margin: 0; min-height: 48px; padding: 10px 20px; border-radius: 999px; background: #fff; border-color: #fff; color: #0e0e0e; font-size: 16px }
+  .answer { background: #fff; color: #0e0e0e; border-radius: var(--r2); padding: 12px 14px; margin-top: 10px; font-size: 15px }
+  .scenes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px } .scenes button { width: auto; margin: 0; min-height: 40px; padding: 8px 14px; font-size: 13px }
+  .sosbtn { position: sticky; bottom: 12px; margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 3; box-shadow: 0 0 0 12px #000 } .sosbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
 </style></head>
 <body><main>
-<div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO crew console</h1><small>Agent status, daily report and crew SOS. Not a medical device.</small></div></div>
-<div class="bar"><span><i class="dot" id="dot"></i><span id="conn">Connecting to the HALO agent...</span></span><span><a href="assistant.html" style="color:var(--blue)">Talk to HALO</a> &nbsp; <a href="./" style="color:var(--blue)">Project page</a></span></div>
+<header class="top"><a class="brandmark" href="./" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">HALO</span></a><span class="stepno" id="online"><i class="dot" id="dot"></i><span id="onlinetext">Connecting</span></span></header>
+<div class="head"><h1>Crew Control</h1><p id="conn">Connecting to the HALO agent...</p><div class="links"><a href="assistant.html">Talk to HALO</a><a href="scan/scan.html">Run a health check</a></div></div>
+<div class="caps" style="margin-top:0">Crew &middot; tap for today's report</div>
 
-<div class="crews" id="crews" aria-label="Crew members"></div>
+<div class="crews" id="crews" aria-label="Crew members"><div class="skel"></div><div class="skel"></div></div>
 
 <section class="card" id="reportcard" hidden>
   <small class="eyebrow" id="rlabel"></small><h2 id="rtitle">Daily report</h2>
   <span class="chip" id="rduty"></span>
   <p id="rsummary"></p>
   <div id="rwatch"></div><div id="rrec"></div>
-  <h3>Space environment</h3><p id="renv" style="color:var(--dim);font-size:14px"></p>
+  <h3>Space environment</h3><p id="renv" style="font-size:14px"></p>
   <small id="rnote"></small>
 </section>
 
-<section class="card" id="nudgecard" hidden><small class="eyebrow">Suggested check</small><div id="nudges"></div></section>
+<section class="card tint-rest" id="nudgecard" hidden><small class="eyebrow">Suggested check</small><div id="nudges"></div></section>
 
-<section class="card" id="soscard" hidden>
-  <small class="eyebrow">Crew SOS</small><h2 id="sostitle">Something is wrong with a crewmate</h2>
+<section id="soscard" hidden>
+  <span class="sospill">SOS</span><h2 id="sostitle">Something is wrong with a crewmate</h2>
   <div class="voice" id="voicebar">
     <button class="mic" id="mic" type="button" aria-label="Talk to HALO"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v5a4 4 0 0 0 4 4Zm7-4a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.08A7 7 0 0 0 19 11Z"/></svg></button>
     <div class="vtext"><b id="vstate">Voice ready</b><span id="vheard">Tap the microphone and say what is happening, for example "my crewmate fainted".</span></div>
     <div class="vopts"><label><input type="checkbox" id="vspeak" checked> Read steps aloud</label><label><input type="checkbox" id="vhands"> Hands-free (listen after each step)</label></div>
   </div>
-  <div id="sospick"><p>Choose what is happening. HALO walks you through a checklist one step at a time.</p><div class="two" id="types"></div></div>
+  <div id="sospick"><div class="caps">Or choose</div><div id="types"></div><small style="margin-top:10px">HALO walks you through a checklist one step at a time. Sourced, not medically reviewed.</small></div>
   <div id="sosrun" hidden>
     <span class="label" id="sreview"></span>
-    <div class="prog"><i id="sprog"></i></div><small id="scount"></small>
+    <div class="prog"><i id="sprog"></i></div><div id="scount"></div>
     <p class="steptext" id="stext" role="status" aria-live="polite"></p><p class="src" id="ssrc"></p>
-    <div class="two"><button id="a-done">Done</button><button id="a-cannot_do" class="ghost">Cannot do this</button><button id="a-condition_changed" class="ghost">Condition changed</button><button id="a-skip" class="ghost">Skip</button></div>
-    <h3>Latest vitals</h3><small id="vlabel"></small><table class="v" id="vitals"></table>
-    <h3>Alert to mission support</h3><p id="sesc" style="font-size:14px;color:var(--dim)"></p>
+    <div class="two acts"><button id="a-done"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Done</button><button id="a-cannot_do"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>Can't do</button><button id="a-condition_changed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12h4l2.5-6 4 12 2.5-6h6"/></svg>Changed</button><button id="a-skip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 5 9 7-9 7ZM18.5 5v14"/></svg>Skip</button></div>
+    <div class="panel card"><h3>Latest vitals</h3><small id="vlabel"></small><table class="v" id="vitals"></table></div>
+    <div class="panel card"><h3>Alert to mission support</h3><p id="sesc" style="font-size:14px;margin-bottom:0"></p></div>
     <h3>Ask about this step</h3>
     <form class="ask" id="askform"><input id="askq" placeholder="For example: why this step?" maxlength="300" aria-label="Question about the current step"><button>Ask</button></form>
     <div class="answer" id="answer" hidden></div>
-    <div class="two" style="margin-top:14px"><button id="resolve" class="ghost">End: resolved</button><button id="handoff" class="ghost">End: handed off</button></div>
+    <div class="two" style="margin-top:16px"><button id="resolve" class="ghost">End: resolved</button><button id="handoff">End: handed off</button></div>
   </div>
   <small id="sdisc" style="margin-top:12px"></small>
 </section>
@@ -84,8 +94,8 @@
 <p id="err" class="warn" hidden></p>
 </main>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.15.0";
-import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.15.0";
+import { CONFIG } from "./scan/js/config.js?v=0.17.0";
+import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.17.0";
 const API = (new URLSearchParams(location.search).get("agent") || CONFIG.AGENT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id), el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const call = async (path, body, method) => {
@@ -186,8 +196,8 @@ $("askform").onsubmit = async (ev) => { ev.preventDefault(); const q = $("askq")
 
 async function init() {
   if (!API) { $("conn").textContent = "No agent address is set in scan/js/config.js (AGENT_URL)."; $("dot").className = "dot bad"; return; }
-  try { const h = await call("/healthz"); $("dot").className = "dot ok"; $("conn").textContent = `Agent connected (${h.mode})`; }
-  catch { $("dot").className = "dot bad"; $("conn").textContent = "The HALO agent cannot be reached right now."; return; }
+  try { const h = await call("/healthz"); $("dot").className = "dot ok"; $("online").className = "stepno"; $("onlinetext").textContent = "Online"; $("conn").textContent = `HALO agent connected (${h.mode})`; }
+  catch { $("dot").className = "dot bad"; $("onlinetext").textContent = "Offline"; $("conn").textContent = "The HALO agent cannot be reached right now."; $("crews").replaceChildren(); return; }
   const types = await call("/api/v1/sos/problem-types");
   for (const t of types) { typeTitles[t.symptom] = t.title; const b = el("button", t.title, "ghost"); b.type = "button"; b.onclick = () => start(t.symptom); $("types").append(b); }
   const scenes = await call("/api/v1/admin/demo").catch(() => []);
