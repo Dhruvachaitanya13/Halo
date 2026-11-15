@@ -210,3 +210,8 @@ a.btn.ghost { background: transparent; color: var(--text); border-color: var(--l
 
 a.btn.help { background: var(--red); border-color: var(--red); color: #fff }
 #agentnotes { margin: 8px 0 0; font-size: 14px }
+
+/* Fingertip pulse step */
+.stage.finger { aspect-ratio: 16 / 7; max-height: 150px } .stage.finger video { transform: none }
+.tiles.two { grid-template-columns: repeat(2, 1fr) }
+.status { min-height: 24px; margin-top: 12px; font-weight: 650; padding-left: 10px; border-left: 3px solid var(--blue) }

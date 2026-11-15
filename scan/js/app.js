@@ -1,18 +1,18 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js?v=0.14.2";
-import * as D from "./dsp.js?v=0.14.2";
-import { runMission } from "./mission.js?v=0.14.2";
+import { CONFIG } from "./config.js?v=0.15.0";
+import * as D from "./dsp.js?v=0.15.0";
+import { runMission } from "./mission.js?v=0.15.0";
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(); // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.14.2";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.15.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
 const $ = (id) => document.getElementById(id);
-const STAGE = { consent: 0, scan: 1, game: 2, recovery: 2, sleep: 3, results: 4, error: -1 };
+const STAGE = { consent: 0, scan: 1, game: 2, recovery: 2, finger: 2, sleep: 3, results: 4, error: -1 };
 const show = (id) => {
   document.querySelectorAll("section").forEach((s) => (s.hidden = s.id !== id));
   [...document.querySelectorAll("#stepper li")].forEach((li, i) => (li.className = i < STAGE[id] ? "done" : i === STAGE[id] ? "now" : ""));
@@ -30,7 +30,7 @@ let stream = null, landmarker = null, running = false, mode = CONFIG.MODES[setti
 // ------------------------------------------------------------------ settings and consent
 $("mode").innerHTML = Object.entries(CONFIG.MODES).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join("");
 for (const k of ["mode", "method", "camera"]) { $(k).value = settings[k]; $(k).addEventListener("change", (e) => { settings[k] = e.target.value; store.set("halo_settings", settings); mode = CONFIG.MODES[settings.mode]; }); }
-for (const k of ["overlay", "validation", "keepCamera"]) { $(k).checked = !!settings[k]; $(k).addEventListener("change", (e) => { settings[k] = e.target.checked; store.set("halo_settings", settings); }); }
+for (const k of ["overlay", "validation", "keepCamera", "finger_step"]) { $(k).checked = !!settings[k]; $(k).addEventListener("change", (e) => { settings[k] = e.target.checked; store.set("halo_settings", settings); }); }
 $("agree").addEventListener("change", (e) => ($("start").disabled = !e.target.checked));
 $("start").addEventListener("click", startScan);
 
@@ -265,8 +265,58 @@ async function runTests() {
   state.tTestsEnd = state.lastT;
   if (running && settings.keepCamera) { show("recovery"); for (let s = CONFIG.RECOVERY_SECONDS; s > 0; s--) { $("rectimer").textContent = `${s} s`; await sleepMs(1000); } }
   stopCamera(); document.querySelector(".stage.mini")?.remove();
+  if (settings.finger_step && !params.get("demo")) await fingerStep();
   $("valbox").hidden = !settings.validation; show("sleep");
 }
+
+// ------------------------------------------------------------------ fingertip pulse: the reliable heart rate
+// The fingertip covers the lens and the whole picture is averaged, so the signal is tens of times stronger than in a face video.
+// Samples only count while the lens is covered. A value is kept only if D.estimateFingerPulse calls it reliable.
+function fingerStep() {
+  return new Promise((done) => {
+    show("finger"); const video = $("fvideo"), NEED = CONFIG.FINGER_SECONDS || 20, LIMIT = NEED + 25;
+    const cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true }); cv.width = 48; cv.height = 36;
+    let fstream = null, on = false, samples = [], all = [], t0 = 0, coveredFrom = null, lastLive = 0, lastMedia = -1, torch = false;
+    const status = (t) => ($("fstatus").textContent = t);
+    const finish = (result, msg) => {
+      on = false; try { fstream?.getTracks().forEach((t) => t.stop()); } catch {} video.srcObject = null;
+      state.finger = result; if (msg) status(msg); $("fstart").hidden = true; $("fskip").textContent = "Continue";
+      $("fskip").onclick = () => done(); if (!result) return void done(); setTimeout(done, result.reliable ? 1800 : 3200);
+    };
+    $("fskip").onclick = () => finish(null);
+    const frame = (now) => {
+      if (!on) return;
+      cx.drawImage(video, 0, 0, 48, 36); const d = cx.getImageData(0, 0, 48, 36).data; let r = 0, g = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } const n = d.length / 4, t = (now - t0) / 1000, smp = { t, r: r / n, g: g / n, b: b / n };
+      all.push(smp); const cover = D.fingerCover(all.slice(-15));
+      if (cover.covered) { if (coveredFrom === null) coveredFrom = t; if (t - coveredFrom > 1.5) samples.push(smp); }       // skip the first moments while the finger settles
+      else { coveredFrom = null; if (samples.length && t - samples[samples.length - 1].t > 1.5) samples = []; }               // finger lifted: start again
+      const got = samples.length > 1 ? samples[samples.length - 1].t - samples[0].t : 0;
+      if (t - lastLive >= 0.5) {
+        lastLive = t; $("fcover").textContent = cover.covered ? "Yes" : cover.reason === "too_dark" ? "Too dark" : "No";
+        $("ftimer").textContent = cover.covered ? `${Math.max(0, Math.ceil(NEED - got))} s` : "--"; $("fring").style.strokeDashoffset = String(94.25 * (1 - Math.min(1, got / NEED)));
+        status(cover.covered ? (got < 3 ? "Finger found. Hold still." : "Measuring. Keep still and press lightly.") : cover.reason === "too_dark" ? `Too dark. ${torch ? "Press more lightly." : "Point the lens at a lamp or bright window with your finger over it."}` : "Cover the lens completely with your fingertip.");
+        if (got >= 6) { const e = D.estimateFingerPulse(samples.slice(-300), { minSeconds: 5 }); $("fbpm").textContent = e.reliable ? Math.round(e.bpm) : "--"; $("fq").style.width = `${Math.round(Math.min(1, e.quality) * 100)}%`; $("fq").style.background = e.reliable ? cssv("--green") : cssv("--amber");
+          if (e.pulse) { const c = $("fwave"), x = c.getContext("2d"), W = c.width, H = c.height, p = e.pulse.slice(-180), m = Math.max(...p.map(Math.abs)) || 1; x.clearRect(0, 0, W, H); x.strokeStyle = cssv("--red"); x.lineWidth = 3; x.lineJoin = "round"; x.beginPath(); p.forEach((v, i) => { const px = (i / (p.length - 1)) * W, py = H / 2 - (v / m) * (H / 2 - 10); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); } }
+      }
+      if (got >= NEED) { const e = D.estimateFingerPulse(samples); const { pulse, ...keep } = e; return finish({ ...keep, torch }, e.reliable ? `Pulse read: ${Math.round(e.bpm)} beats a minute.` : "The signal was not clear enough to trust, so no value was kept."); }
+      if (t > LIMIT) return finish({ bpm: null, quality: 0, reliable: false, reason: samples.length ? "timed_out" : "finger_not_detected", torch }, samples.length ? "Time ran out before a steady reading." : "No fingertip was detected on the lens.");
+      schedule();
+    };
+    const schedule = () => { if (video.requestVideoFrameCallback) video.requestVideoFrameCallback((now) => frame(now)); else requestAnimationFrame((now) => { if (video.currentTime !== lastMedia) { lastMedia = video.currentTime; frame(now); } else schedule(); }); };
+    $("fstart").onclick = async () => {
+      $("fstart").hidden = true; status("Opening the camera...");
+      try {
+        fstream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 30 } }, audio: false });
+        video.srcObject = fstream; await video.play().catch(() => {});
+        const track = fstream.getVideoTracks()[0]; try { if (track.getCapabilities?.().torch) { await track.applyConstraints({ advanced: [{ torch: true }] }); torch = true; } } catch {}
+        if (!(await waitFor(() => video.videoWidth > 0 && video.readyState >= 2, 6000))) return finish(null, "The camera sent no picture. Skipping this step.");
+        on = true; t0 = performance.now(); schedule();
+      } catch { finish(null, "The camera could not be opened. Skipping this step."); }
+    };
+  });
+}
+if (params.get("demo") === "finger") fingerStep().then(() => { show("finger"); $("fstatus").textContent = state.finger ? JSON.stringify(state.finger) : "Skipped."; });
 const syncMute = () => { $("mute").textContent = settings.sound ? "Sound on" : "Sound off"; $("mute").setAttribute("aria-pressed", String(!settings.sound)); };
 $("mute").addEventListener("click", () => { settings.sound = !settings.sound; store.set("halo_settings", settings); syncMute(); }); syncMute();
 
@@ -291,10 +341,12 @@ function results() {
   const cSpan = restRoi.all.length > 1 ? restRoi.all[restRoi.all.length - 1].t - restRoi.all[0].t : 0, colourRate = cSpan ? restRoi.all.length / cSpan : null;
   const quality = D.scanQuality({ fps: colourRate, motion_pct: scanned ? (state.motionFrames / state.faceFrames) * 100 : null,
     brightness: state.light.length ? D.mean(state.light) : null, face_frac: state.faceFrac.length ? D.median(state.faceFrac) : null, heart_quality: scanned ? heart.quality : null });
-  const hrv = ok(heart) && heart.quality >= 0.6 && heart.beats?.valid ? heart.beats : null;
+  const finger = state.finger && state.finger.reliable ? state.finger : null;        // fingertip pulse, when it passed its own checks
+  const hrv = finger?.beats?.valid ? finger.beats : ok(heart) && heart.quality >= 0.6 && heart.beats?.valid ? heart.beats : null;
   const record = {
     session_id: sessionId, created_at: new Date().toISOString(), app_version: APP_VERSION, mode: settings.mode,
-    heart_bpm: ok(heart) ? heart.bpm : null, heart_quality: heart.quality, heart_confidence: heart.confidence ?? 0, heart_method: heart.method ?? null, heart_region: heart.region ?? null,
+    heart_bpm: finger ? finger.bpm : ok(heart) ? heart.bpm : null, heart_quality: finger ? finger.quality : heart.quality, heart_confidence: finger ? 0.9 : heart.confidence ?? 0,
+    heart_method: finger ? "finger" : heart.method ?? null, heart_region: finger ? "fingertip" : heart.region ?? null,
     heart_min_bpm: ok(heart) ? heart.track?.min ?? null : null, heart_max_bpm: ok(heart) ? heart.track?.max ?? null : null, heart_trend_bpm_per_min: ok(heart) ? heart.track?.trend_bpm_per_min ?? null : null,
     hrv_rmssd_ms: hrv?.rmssd_ms ?? null, hrv_sdnn_ms: hrv?.sdnn_ms ?? null, beat_irregularity_pct: hrv?.irregularity_pct ?? null,
     breathing_brpm: breathing.brpm, breathing_quality: r1(breathing.quality), breathing_source: breathing.source, breathing_interval_cv_pct: breathing.brpm ? bstats.interval_cv_pct ?? null : null,
@@ -351,7 +403,8 @@ function results() {
   const alertFlags = a.flags.filter((f) => /eye|slow|early|yawn|red|memory/.test(f)).length;
   record.verdict = a.flags.length === 0 ? "ready" : alertFlags >= 2 || (score.score !== null && score.score < 50) ? "rest" : "caution";      // "rest" needs two performance or drowsiness flags, or a low score
   record.readiness_score = score.score; record.flags = a.flags; record.notes = a.notes;
-  record.details = { diagnostics: { tracker_ms: Math.round(dbg.ms), tracker_frames: dbg.frames, colour_samples_per_s: colourRate === null ? null : Math.round(colourRate * 10) / 10, delegate: dbg.delegate, safari: SAFARI, phased: state.phased, light_mean: state.light.length ? Math.round(D.mean(state.light)) : null }, score_parts: score.parts, deviations: dev, scan_issues: quality.issues, candidates: heart.candidates, heart_series: heart.track?.series ?? [],
+  record.details = { finger: state.finger || null, face_heart: scanned ? { bpm: heart.bpm, quality: heart.quality, raw_quality: heart.raw_quality ?? null, steady: heart.steady ?? null, method: heart.method ?? null, region: heart.region ?? null } : null,
+                     diagnostics: { tracker_ms: Math.round(dbg.ms), tracker_frames: dbg.frames, colour_samples_per_s: colourRate === null ? null : Math.round(colourRate * 10) / 10, delegate: dbg.delegate, safari: SAFARI, phased: state.phased, light_mean: state.light.length ? Math.round(D.mean(state.light)) : null }, score_parts: score.parts, deviations: dev, scan_issues: quality.issues, candidates: heart.candidates, heart_series: heart.track?.series ?? [],
                      breathing: { chest, from_beats: fromBeats, agree: breathing.agree, estimates: breathing.estimates, ...bstats }, tests: state.tests, settings: { ...settings },
                      expression: ex, ml: { model: "isolation forest", windows: moments.trained_on, moments: moments.moments, check: anomaly }, trends };
 
@@ -365,8 +418,10 @@ function results() {
     Object.entries(score.parts).map(([k, v]) => `<div class="part"><span>${k}</span><div class="pbar"><i style="width:${v}%"></i></div><span>${v}</span></div>`).join("");
   const hrSpan = restRoi.all.length > 1 ? restRoi.all[restRoi.all.length - 1].t - restRoi.all[0].t : 0, hrRate = hrSpan ? Math.round(restRoi.all.length / hrSpan) : 0, lightMean = state.light.length ? D.mean(state.light) : 0;
   const hrTip = hrRate && hrRate < 20 ? "The camera delivered too few frames; close other tabs and add light." : lightMean < 70 ? "The face was too dark; face a window or a lamp." : lightMean > 200 ? "The face was over-exposed; move away from direct light." : state.motionFrames / Math.max(1, state.faceFrames) > 0.1 ? "There was too much head movement; rest your elbows and keep still." : "Use even light from the front, keep still and do not talk; laptop cameras in room light are often too noisy.";
-  let h = row("Heart rate", record.heart_bpm ? `${Math.round(record.heart_bpm)} bpm` : "-", ok(heart) ? `${sig(heart.quality)}, confidence ${Math.round(heart.confidence * 100)}%; range ${Math.round(heart.track.min ?? heart.bpm)}-${Math.round(heart.track.max ?? heart.bpm)}; ${heart.method.toUpperCase()} on ${heart.region}${vs("heart_bpm")}` : scanned ? `signal too weak, not reported (quality ${Math.round(heart.quality * 100)}%, needs ${Math.round(Q * 100)}%; ${hrRate} colour samples/s). ${hrTip}` : sig(0), "live");
-  if (hrv) h += row("Beat-to-beat variation", `${hrv.rmssd_ms} ms`, `RMSSD from ${hrv.beats} beats; SDNN ${hrv.sdnn_ms} ms. Camera timing is coarse.`, "experimental");
+  const faceNote = ok(heart) ? ` The face-video estimate was ${Math.round(heart.bpm)} bpm (experimental).` : scanned ? " The face video gave no usable estimate." : "";
+  let h = finger ? row("Heart rate", `${Math.round(finger.bpm)} bpm`, `fingertip pulse, ${finger.quality >= 0.6 ? "good signal" : "fair signal"}; ${finger.beats.beats} beats counted over ${Math.round(finger.seconds)} s, and the beat count and the spectrum agree.${faceNote}${vs("heart_bpm")}`, "live")
+        : row("Heart rate", record.heart_bpm ? `${Math.round(record.heart_bpm)} bpm` : "-", ok(heart) ? `${sig(heart.quality)}, confidence ${Math.round(heart.confidence * 100)}%; range ${Math.round(heart.track.min ?? heart.bpm)}-${Math.round(heart.track.max ?? heart.bpm)}; ${heart.method.toUpperCase()} on ${heart.region}${vs("heart_bpm")}` : scanned ? `signal too weak, not reported (quality ${Math.round(heart.quality * 100)}%, needs ${Math.round(Q * 100)}%; ${hrRate} colour samples/s). ${hrTip}` : sig(0), "live");
+  if (hrv) h += row("Beat-to-beat variation", `${hrv.rmssd_ms} ms`, `RMSSD from ${hrv.beats} beats${finger ? " (fingertip)" : ""}; SDNN ${hrv.sdnn_ms} ms. Camera timing is coarse.`, "experimental");
   h += row("Breathing rate", breathing.brpm ? `${Math.round(breathing.brpm)} /min` : "-", breathing.brpm ? `${sig(breathing.quality)}; from ${breathing.source}${breathing.agree ? " (both agree)" : breathing.agree === false ? " (methods disagreed)" : ""}${vs("breathing_brpm")}` : sig(breathing.quality), "experimental");
   h += row("Blink rate", scanned && blink.blink_rate_per_min !== null ? `${blink.blink_rate_per_min} /min` : "-", scanned ? `eyes closed ${blink.perclos_pct ?? "-"}% of the time; ${blink.long_closures} long closure(s); ${yawns} yawn(s)${vs("blink_rate_per_min")}` : sig(0), "live");
   const MOODS = { 5: "very good", 4: "good", 3: "neutral", 2: "low", 1: "very low" };

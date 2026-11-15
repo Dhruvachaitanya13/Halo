@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO health check</title><link rel="stylesheet" href="style.css?v=0.14.2"></head>
+<title>HALO health check</title><link rel="stylesheet" href="style.css?v=0.15.0"></head>
 <body><main>
 <div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO health check</h1><small>Crew health prototype. Not a medical device.</small></div></div>
 
@@ -20,6 +20,7 @@
     <label>Camera<select id="camera"><option value="user">Front</option><option value="environment">Back</option></select></label>
     <label><input type="checkbox" id="overlay"> Show the measured regions on the video</label>
     <label><input type="checkbox" id="keepCamera"> Keep the camera on during the tests (heart-rate response and recovery)</label>
+    <label><input type="checkbox" id="finger_step"> Fingertip pulse step after the tests (the reliable heart rate)</label>
     <label><input type="checkbox" id="validation"> Validation mode: I will enter readings from a reference device</label>
   </details>
   <label><input type="checkbox" id="agree"> I agree to this scan and to my results being saved.</label>
@@ -64,6 +65,17 @@
   <div class="pad done"><span id="rectimer"></span></div>
 </section>
 
+<section id="finger" class="card" hidden>
+  <small class="eyebrow">Heart rate</small><h2>Fingertip pulse</h2>
+  <p>This is the reliable way to read your pulse. Cover the <b>back camera lens</b> completely with a fingertip, press lightly, and keep still for 20 seconds. On a laptop, cover the webcam. If your phone has a light, it switches on.</p>
+  <div class="stage finger"><video id="fvideo" playsinline muted autoplay></video>
+    <div class="hud"><svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15"/><circle class="fg" id="fring" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><span id="ftimer">--</span></div></div>
+  <div id="fstatus" class="status" role="status" aria-live="polite">Press Start when your finger is ready.</div>
+  <div class="tiles two"><div class="tile"><b id="fbpm">--</b><span>heart rate, bpm</span><div class="qbar"><i id="fq"></i></div></div><div class="tile"><b id="fcover" class="txt">--</b><span>finger on the lens</span></div></div>
+  <canvas class="wave" id="fwave" width="600" height="140" aria-label="Live fingertip pulse signal"></canvas>
+  <button id="fstart" type="button">Start</button><button id="fskip" class="ghost" type="button">Skip this step</button>
+</section>
+
 <section id="sleep" class="card" hidden>
   <h2>Last questions</h2>
   <form id="sleepform">
@@ -93,4 +105,4 @@
 </section>
 
 <section id="error" class="card" hidden><h2>Something went wrong</h2><p id="errmsg"></p><a class="btn" href="">Try again</a></section>
-</main><script type="module" src="js/app.js?v=0.14.2"></script></body></html>
+</main><script type="module" src="js/app.js?v=0.15.0"></script></body></html>

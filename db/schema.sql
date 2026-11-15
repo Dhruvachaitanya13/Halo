@@ -89,8 +89,13 @@ create table if not exists public.radiation_forecasts (
   peak_probability numeric not null check (peak_probability between 0 and 1),
   predicted_peak boolean not null,
   model_name text not null, model_version text,
+  actual_peak_within_30min boolean,              -- what then happened (historical data, so it is known)
+  forecast_kind text,                            -- 'walk_forward' (model saw earlier days only) or 'held_out_test'
   unique (for_timestamp, model_name, model_version)
 );
+alter table public.radiation_forecasts add column if not exists actual_peak_within_30min boolean;
+alter table public.radiation_forecasts add column if not exists forecast_kind text;
+create index if not exists radiation_forecasts_time on public.radiation_forecasts (for_timestamp);
 
 -- ------------------------------------------------------------------ read-only access for the public key
 alter table public.nasa_radiation enable row level security;

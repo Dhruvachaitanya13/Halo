@@ -239,3 +239,14 @@ One journey from check to help, and voice on the crew SOS.
 - **Talk to HALO** (`../assistant.html`): one assistant reached by chat, browser voice, text message, phone call, and a call placed from the page through Twilio. It is served by the assistant service in `../twilio/` (see its README). `ASSISTANT_URL` in `js/config.js` is that service's address.
 - The results page has "Ask HALO about this check", which opens the assistant with that question already asked.
 - Checked: the assistant page driven end to end against a locally running assistant service and agent. Not checked: against a deployed service, or with a real Twilio account.
+
+## Version 0.15
+
+Heart rate is now read from a fingertip, which is the reliable way; the face video stays as an experimental second estimate.
+
+- **Fingertip pulse step** after the tests. The crew member covers the back camera lens (or a laptop webcam) with a fingertip for 20 seconds. The whole picture is averaged, so the signal is tens of times stronger than in a face video; phone heart-rate apps work the same way. The phone's light is switched on where the browser allows it (Android Chrome; not iPhone Safari).
+- A fingertip value is kept only when four checks pass: the lens is covered (red-dominated picture), the signal passes the same significance test as before, individual beats can be counted, and the rate from counting beats agrees with the rate from the spectrum within 5 beats a minute.
+- When the fingertip reading passes, it is the heart rate that is shown, saved and sent to the agent (`heart_method: "finger"`), and beat-to-beat variation comes from it. The face-video estimate is shown beside it, so each check also shows how far the two differ.
+- **Face video is stricter.** A rate that does not stay steady through the scan is withheld (`details.face_heart.steady`). This removes readings like the 46 and 53 bpm seen earlier, at the cost of fewer face readings.
+- The step can be switched off under More options, and `scan.html?demo=finger` runs it on its own.
+- Checked: 31 unit tests, including beat-shaped fingertip signals at 52, 78 and 132 bpm, an uncovered lens, a dark lens, and a covered lens with no pulse (0 false readings in 30 runs); the step run in headless Chromium on a synthetic fingertip video at 84 bpm, which it read as 84. Not checked: a real fingertip on a real phone. In dim light without the phone's light the picture can be too dark, and the step then says so and keeps no value.

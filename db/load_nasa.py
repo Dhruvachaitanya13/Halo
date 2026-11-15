@@ -17,12 +17,15 @@ TABLES = {   # table: (file, columns to load, key columns)
     "nasa_labs": ("inspiration4_labs_long_corrected.csv", ["astronaut_id", "timepoint", "panel", "analyte", "timepoint_order", "phase", "days_from_launch", "analyte_label", "value", "unit", "normal_low", "normal_high",
                                                             "value_as_published", "value_quality", "preflight_mean", "preflight_sd", "preflight_n", "change_from_preflight", "pct_change_from_preflight", "z_from_preflight",
                                                             "status", "baseline_quality", "source_study"], "astronaut_id,timepoint,panel,analyte"),
+    "radiation_forecasts": ("forecasts.csv", ["for_timestamp", "peak_probability", "predicted_peak", "actual_peak_within_30min", "forecast_kind", "model_name", "model_version"],
+                            "for_timestamp,model_name,model_version"),
 }
+FORECASTS = Path(__file__).resolve().parent.parent / "model" / "forecasts.csv"      # written by model/train_forecast.py
 def clean(v):                       # blank -> null, True/False -> boolean; numbers stay as text and Postgres converts them exactly
     return None if v == "" else True if v == "True" else False if v == "False" else v
 def rows(table):
     file, cols, _ = TABLES[table]
-    with open(DATA / file, newline="", encoding="utf-8") as f:
+    with open(FORECASTS if table == "radiation_forecasts" else DATA / file, newline="", encoding="utf-8") as f:
         return [{c: clean(r[c]) for c in cols} for r in csv.DictReader(f)]
 def post(table, batch, key):
     req = urllib.request.Request(f"{URL}/rest/v1/{table}?on_conflict={key}", data=json.dumps(batch).encode(), method="POST",

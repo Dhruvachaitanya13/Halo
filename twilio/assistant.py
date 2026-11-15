@@ -37,7 +37,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_eO7f18_oGfyr2fKHBOkIOg_
 DEFAULT_CREW = os.getenv("HALO_BRIDGE_CREW", "LIVE_01")
 TIMEOUT_S = 6.0
 LIMITS = {"sms": 300, "voice": 420, "web": 900}
-MENU = ["Crew status", "Daily report", "My last check", "Radiation on 10 May", "Space weather", "Emergency"]
+MENU = ["Crew status", "Daily report", "My last check", "Radiation on 10 May", "Forecast on 10 May", "Space weather", "Emergency"]
 NOT_ADVICE = "HALO is a prototype, not a medical device."
 
 
@@ -155,6 +155,27 @@ def radiation(day: int) -> str:
             f"Dose for the day about {total:.0f} micrograys. This is a cabin measurement, not anyone's personal dose.")
 
 
+def forecast(day: int) -> str:
+    """How the radiation peak forecast did on one day: what it called, and what then happened."""
+    rows = db("radiation_forecasts", f"select=for_timestamp,peak_probability,predicted_peak,actual_peak_within_30min,forecast_kind,model_name"
+                                     f"&for_timestamp=gte.2024-05-{day:02d}T00:00:00Z&for_timestamp=lt.2024-05-{day + 1:02d}T00:00:00Z&order=for_timestamp")
+    if not rows:
+        return (f"There is no forecast for {day} May 2024. Forecasts exist for 8 to 30 May 2024; the model needs the first week to learn from. "
+                "If none exist at all, the forecast table has not been loaded yet.")
+    called = [r for r in rows if r["predicted_peak"]]
+    actual = [r for r in rows if r.get("actual_peak_within_30min")]
+    hit = sum(1 for r in called if r.get("actual_peak_within_30min"))
+    caught = sum(1 for r in actual if r["predicted_peak"])
+    top = max(rows, key=lambda r: float(r["peak_probability"]))
+    kind = "held-out test day" if rows[0].get("forecast_kind") == "held_out_test" else "the model had only seen earlier days"
+    out = (f"Historical replay, not a live forecast: radiation peak forecast for {day} May 2024 ({kind}). "
+           f"Every five minutes the model estimated the chance of a dose-rate peak in the next 30 minutes. It called a peak {len(called)} times out of {len(rows)}")
+    out += f", and {hit} of those calls were right. " if called else ". "
+    out += f"A peak did follow {len(actual)} times and the model caught {caught} of them. " if actual else "No peak followed on this day. "
+    out += f"Its highest estimate was {float(top['peak_probability']) * 100:.0f} percent at {str(top['for_timestamp'])[11:16]} UTC. "
+    return out + "A peak here is a statistical line, not a safety limit, and this is cabin dose rate, not a personal dose."
+
+
 def space_weather(day: Optional[int]) -> str:
     q = "select=timestamp,event_type,value,detail&order=timestamp"
     if day:
@@ -219,7 +240,7 @@ def start_sos(text: str, sender: str) -> str:
 
 
 def menu() -> str:
-    return ("I am HALO. I can tell you the crew status, read the daily report, describe the latest health check, and give historical NASA radiation and space weather "
+    return ("I am HALO. I can tell you the crew status, read the daily report, describe the latest health check, and give historical NASA radiation, the radiation peak forecast and space weather "
             "for May 2024. In an emergency say EMERGENCY and what is happening, and I will read a checklist one step at a time. " + NOT_ADVICE)
 
 
@@ -243,6 +264,8 @@ def classify(text: str, in_sos: bool = False) -> str:
         return "labs"
     if _has(t, "space weather", "storm", "storms", "solar", "kp", "geomagnetic", "flare", "flares"):
         return "space_weather"
+    if _has(t, "forecast", "forecasts", "predict", "prediction", "predictions", "predicted", "model", "next 30 minutes", "peak coming", "will there be"):
+        return "forecast"
     if _has(t, "radiation", "dose", "dosimeter", "radiation level", "rad"):
         return "radiation"
     if _has(t, "report", "brief", "briefing", "summary", "daily"):
@@ -279,6 +302,8 @@ def reply(text: str, channel: str = "web", sender: str = "") -> dict:
             out, source = last_check(), "database: scan_feed"
         elif intent == "radiation":
             out, source = radiation(_may_day(text)), "database: nasa_radiation"
+        elif intent == "forecast":
+            out, source = forecast(_may_day(text)), "database: radiation_forecasts"
         elif intent == "space_weather":
             out, source = space_weather(_may_day(text, 0) or None), "database: nasa_space_weather"
         elif intent == "labs":
@@ -288,7 +313,7 @@ def reply(text: str, channel: str = "web", sender: str = "") -> dict:
             unknown = ans == bridge.SAFE_REPLY or "Not covered" in ans or ans == bridge.NO_SOS
             out, source = ("I can't answer that. " + menu()) if unknown else ans, "" if unknown else "agent: ask"
     except Exception:
-        where = "the HALO database" if intent in ("last_check", "radiation", "space_weather", "labs") else "the HALO agent"
+        where = "the HALO database" if intent in ("last_check", "radiation", "forecast", "space_weather", "labs") else "the HALO agent"
         out, source = f"I could not reach {where} just now, so I have no answer for that. Nothing was guessed.", ""
     if intent in ("emergency", "sos_step", "sos_question") and channel != "sms":
         # The agent words checklist steps for text messages. For speech and chat: say "step 2 of 9", drop the texting instructions.

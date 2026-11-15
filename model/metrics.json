@@ -1,0 +1,153 @@
+{
+ "model": "hist_gradient_boosting",
+ "version": "1.0",
+ "settings": {
+  "max_depth": 4,
+  "learning_rate": 0.08,
+  "max_iter": 200,
+  "random_state": 0
+ },
+ "features": 18,
+ "target": "target_peak_within_30min",
+ "peak_threshold_ugy_h": 11.60008,
+ "decision_threshold": 0.34,
+ "decision_threshold_chosen_on": "walk-forward forecasts, 8-24 May 2024 (best F1); applied unchanged to the held-out days",
+ "walk_forward_8_to_24_may": {
+  "rows": 4811,
+  "peak_rate": 0.217,
+  "precision": 0.79,
+  "recall": 0.802,
+  "f1": 0.796,
+  "roc_auc": 0.923,
+  "average_precision": 0.859,
+  "brier": 0.0666,
+  "calibration": [
+   {
+    "forecast_range": "(-0.001, 0.1]",
+    "n": 3467,
+    "mean_forecast": 0.008,
+    "observed_rate": 0.038
+   },
+   {
+    "forecast_range": "(0.1, 0.3]",
+    "n": 259,
+    "mean_forecast": 0.186,
+    "observed_rate": 0.251
+   },
+   {
+    "forecast_range": "(0.3, 0.5]",
+    "n": 146,
+    "mean_forecast": 0.399,
+    "observed_rate": 0.411
+   },
+   {
+    "forecast_range": "(0.5, 0.7]",
+    "n": 180,
+    "mean_forecast": 0.601,
+    "observed_rate": 0.567
+   },
+   {
+    "forecast_range": "(0.7, 0.9]",
+    "n": 264,
+    "mean_forecast": 0.813,
+    "observed_rate": 0.788
+   },
+   {
+    "forecast_range": "(0.9, 1.0]",
+    "n": 495,
+    "mean_forecast": 0.964,
+    "observed_rate": 0.958
+   }
+  ]
+ },
+ "held_out_test_25_to_30_may": {
+  "rows": 1722,
+  "peak_rate": 0.183,
+  "precision": 0.823,
+  "recall": 0.93,
+  "f1": 0.873,
+  "roc_auc": 0.991,
+  "average_precision": 0.969,
+  "brier": 0.0281,
+  "calibration": [
+   {
+    "forecast_range": "(-0.001, 0.1]",
+    "n": 1233,
+    "mean_forecast": 0.009,
+    "observed_rate": 0.004
+   },
+   {
+    "forecast_range": "(0.1, 0.3]",
+    "n": 118,
+    "mean_forecast": 0.185,
+    "observed_rate": 0.093
+   },
+   {
+    "forecast_range": "(0.3, 0.5]",
+    "n": 58,
+    "mean_forecast": 0.396,
+    "observed_rate": 0.259
+   },
+   {
+    "forecast_range": "(0.5, 0.7]",
+    "n": 42,
+    "mean_forecast": 0.602,
+    "observed_rate": 0.476
+   },
+   {
+    "forecast_range": "(0.7, 0.9]",
+    "n": 107,
+    "mean_forecast": 0.81,
+    "observed_rate": 0.935
+   },
+   {
+    "forecast_range": "(0.9, 1.0]",
+    "n": 164,
+    "mean_forecast": 0.956,
+    "observed_rate": 1.0
+   }
+  ]
+ },
+ "naive_rule_current_bin_above_line": {
+  "walk_forward": {
+   "precision": 0.641,
+   "recall": 0.223
+  },
+  "held_out_test": {
+   "precision": 0.652,
+   "recall": 0.232
+  }
+ },
+ "top_features_by_permutation_importance": [
+  {
+   "feature": "lon_sin",
+   "drop_in_average_precision": 0.3313
+  },
+  {
+   "feature": "lat_moving_north",
+   "drop_in_average_precision": 0.0715
+  },
+  {
+   "feature": "longitude",
+   "drop_in_average_precision": 0.0685
+  },
+  {
+   "feature": "dose_rate_roll_max_1h",
+   "drop_in_average_precision": 0.0438
+  },
+  {
+   "feature": "dose_rate_lag_30min",
+   "drop_in_average_precision": 0.0428
+  },
+  {
+   "feature": "dose_rate_max_ugy_h",
+   "drop_in_average_precision": 0.0352
+  }
+ ],
+ "limits": [
+  "One month of data from one instrument (DOSTEL-1, ISS Columbus, May 2024).",
+  "The peak line is three times the training median dose rate: a statistical definition, not a NASA exposure limit.",
+  "Cabin dose rate, not anyone's personal dose.",
+  "Space weather is not an input; this month cannot show whether it would help."
+ ]
+}

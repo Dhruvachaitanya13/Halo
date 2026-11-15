@@ -283,3 +283,24 @@ test("voice: a spoken emergency picks a checklist, and unclear speech goes to th
   assert.equal(pickSymptom("something is wrong with Sam"), "other");
   assert.ok(isHelpRequest("help")); assert.ok(isHelpRequest("he fainted")); assert.ok(!isHelpRequest("what time is it"));
 });
+
+test("fingertip pulse: reads a realistic finger signal, and refuses an uncovered lens, a dark lens and noise", () => {
+  let seed = 5; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; }, gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(6.283 * rnd());
+  // a beat-shaped wave (sharp rise, slow fall) at 78 bpm with beat-to-beat variation, 1.5% of the light level, slow drift, and camera noise
+  const finger = (bpm, depth, noise, secs = 20) => { const out = []; let phase = 0, t = 0; while (t < secs) { const dt = (1 / 30) * (0.9 + 0.2 * rnd()); t += dt; phase += dt * (bpm / 60) * (1 + 0.04 * Math.sin(t * 0.9));
+      const ph = phase % 1, beat = ph < 0.18 ? ph / 0.18 : Math.exp(-(ph - 0.18) * 3.2), drift = 4 * Math.sin(t * 0.25);
+      out.push({ t, r: 190 * (1 - depth * beat) + drift + noise * gauss(), g: 22 + noise * gauss(), b: 14 + noise * gauss() }); } return out; };
+  const good = D.estimateFingerPulse(finger(78, 0.015, 0.4));
+  assert.ok(good.reliable && Math.abs(good.bpm - 78) <= 2, `got ${good.bpm} (${good.reason})`); assert.ok(good.beats.beats >= 20 && good.quality >= 0.5);
+  const fast = D.estimateFingerPulse(finger(132, 0.012, 0.4)); assert.ok(fast.reliable && Math.abs(fast.bpm - 132) <= 3, `got ${fast.bpm}`);
+  const slow = D.estimateFingerPulse(finger(52, 0.015, 0.4)); assert.ok(slow.reliable && Math.abs(slow.bpm - 52) <= 2, `got ${slow.bpm}`);
+  const room = Array.from({ length: 600 }, (_, i) => ({ t: i / 30, r: 120 + gauss(), g: 115 + gauss(), b: 110 + gauss() }));
+  assert.deepEqual([D.estimateFingerPulse(room).bpm, D.estimateFingerPulse(room).reason], [null, "not_covered"]);
+  const dark = Array.from({ length: 600 }, (_, i) => ({ t: i / 30, r: 6 + gauss(), g: 5 + gauss(), b: 5 + gauss() })); assert.equal(D.estimateFingerPulse(dark).reason, "too_dark");
+  let wrong = 0; for (let k = 0; k < 30; k++) { const n = D.estimateFingerPulse(finger(70, 0, 0.6)); if (n.bpm !== null) wrong++; } assert.equal(wrong, 0, `covered lens with no pulse gave a heart rate in ${wrong} of 30 runs`);
+  assert.equal(D.estimateFingerPulse(finger(78, 0.015, 0.4, 6)).reason, "need_more_time");
+});
+test("face heart rate: a rate that wanders during the scan is withheld", () => {
+  const s = []; for (let i = 0; i < 30 * 30; i++) { const t = i / 30, f = t < 15 ? 0.9 : 1.6, p = Math.sin(2 * Math.PI * f * t); s.push({ t, r: 150 + 0.15 * p, g: 110 + 0.6 * p, b: 90 + 0.27 * p }); }
+  const h = D.estimateHeartRateAdvanced({ all: s }); assert.equal(h.steady, false); assert.ok(h.quality < 0.35 && h.reason === "rate_not_steady");
+});

@@ -14,6 +14,7 @@ export const CONFIG = {
     full:     { label: "Full (about 5 minutes)",     scan: 60, tests: ["reaction", "gonogo", "memory", "docking"], trials: 8 },
   },
   DOCKING_SECONDS: 25,         // length of the docking task
+  FINGER_SECONDS: 20,          // length of the fingertip pulse reading
   RECOVERY_SECONDS: 15,        // still period after the tests, for the recovery heart rate
-  DEFAULTS: { mode: "standard", method: "auto", camera: "user", overlay: true, validation: false, keepCamera: true, sound: true },
+  DEFAULTS: { mode: "standard", method: "auto", camera: "user", overlay: true, validation: false, keepCamera: true, sound: true, finger_step: true },
 };

@@ -290,8 +290,43 @@ export function estimateHeartRateAdvanced(regions, { fs = 30, method = "auto", m
   const track = trackHeartRate(best.pulse, fs, { Q }), stable = track.median !== null && track.coverage >= 0.5;
   const bpm = stable ? track.median : best.bpm, beats = beatMetrics(best.pulse, fs, bpm);
   const confidence = Math.round(Math.min(1, 0.55 * best.quality + 0.3 * agreement + 0.15 * (track.coverage || 0)) * 100) / 100;
-  return { bpm: Math.round(bpm * 10) / 10, quality: best.quality, confidence, method: best.method, region: best.region, agreement: Math.round(agreement * 100) / 100,
-           track, beats, pulse: best.pulse, candidates: candidates.map(({ pulse, ...c }) => c) };
+  // A real pulse holds roughly the same rate through the scan. If the ten-second windows do not agree with each other (fewer than half pass,
+  // or the middle half of them spans more than 8 beats a minute), the peak is drift or movement, and the value is withheld: the quality is
+  // capped just under the reporting line so nothing downstream shows or saves it. raw_quality keeps the uncapped figure for diagnosis.
+  const steady = stable && (track.iqr ?? 99) <= 8, shown = steady ? best.quality : Math.min(best.quality, Math.max(0, Q - 0.01));
+  return { bpm: Math.round(bpm * 10) / 10, quality: shown, raw_quality: best.quality, steady, reason: steady ? null : "rate_not_steady", confidence: steady ? confidence : Math.min(confidence, 0.3),
+           method: best.method, region: best.region, agreement: Math.round(agreement * 100) / 100, track, beats, pulse: best.pulse, candidates: candidates.map(({ pulse, ...c }) => c) };
+}
+
+// ------------------------------------------------------------------ fingertip pulse (contact photoplethysmography)
+// A fingertip pressed over the camera lens turns the picture red, and each heartbeat changes how much light the finger lets through.
+// That change is tens of times larger than the one in a face video, which is why phone heart-rate apps measure this way.
+
+/** Is a fingertip covering the lens? A covered lens gives a red-dominated, fairly bright, picture. */
+export function fingerCover(samples) {
+  if (!samples.length) return { covered: false, reason: "no_frames" };
+  const r = mean(samples.map((s) => s.r)), g = mean(samples.map((s) => s.g)), b = mean(samples.map((s) => s.b));
+  if (r < 30) return { covered: false, reason: Math.max(g, b) < 30 ? "too_dark" : "not_covered", r, g, b };
+  if (r < 1.3 * Math.max(g, b, 1)) return { covered: false, reason: "not_covered", r, g, b };
+  return { covered: true, reason: null, r, g, b };
+}
+
+/** Heart rate from fingertip samples [{t, r, g, b}]. Two independent readings must agree before a value is reported:
+ *  the rate from the spectrum and the rate from counting individual beats. */
+export function estimateFingerPulse(samples, { fs = 30, minSeconds = 10, Q = 0.35 } = {}) {
+  const cover = fingerCover(samples), seconds = samples.length > 1 ? samples[samples.length - 1].t - samples[0].t : 0;
+  const none = (reason) => ({ bpm: null, quality: 0, reliable: false, reason, seconds: Math.round(seconds * 10) / 10, covered: cover.covered });
+  if (!cover.covered) return none(cover.reason);
+  if (seconds < minSeconds) return none("need_more_time");
+  const t = samples.map((s) => s.t), ch = cover.r > 250 ? "g" : "r";                       // red is the strongest channel unless the light saturates it
+  const raw = resample(t, samples.map((s) => s[ch]), fs), m = mean(raw) || 1;
+  const pulse = bandpass(raw.map((v) => -(v / m - 1)), fs, 0.7, 3.5);                      // more blood -> less light, so flip it: beats point up
+  const sp = spectrum(pulse, fs, 0.7, 3.5), pq = sp ? peakQuality(sp.freqs, sp.pow, sp.n, fs, sp.step) : { freq: NaN, quality: 0 };
+  const specBpm = pq.freq * 60, beats = beatMetrics(pulse, fs, specBpm), beatBpm = beats.valid ? beats.bpm_from_beats : null;
+  const agree = beatBpm !== null && Math.abs(beatBpm - specBpm) <= 5, ac = std(raw) / m;
+  const reliable = pq.quality >= Q && agree, r1 = (v) => Math.round(v * 10) / 10;
+  return { bpm: reliable ? r1(beatBpm) : null, quality: Math.round(pq.quality * 100) / 100, reliable, reason: reliable ? null : pq.quality < Q ? "weak_signal" : "beats_disagree",
+           spectrum_bpm: r1(specBpm), beat_bpm: beatBpm === null ? null : r1(beatBpm), beats, signal_pct: Math.round(ac * 10000) / 100, channel: ch, seconds: r1(seconds), covered: true, pulse };
 }
 
 /** Breathing rate from the natural speeding and slowing of the heartbeat with each breath (needs clean beat timing). */

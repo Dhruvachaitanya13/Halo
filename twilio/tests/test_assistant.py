@@ -11,8 +11,12 @@ WX = [{"timestamp": "2024-05-11T00:00:00+00:00", "event_type": "geomagnetic_stor
       {"timestamp": "2024-05-11T02:10:00+00:00", "event_type": "solar_particle_event_report", "value": 1, "detail": "GOES"}]
 
 
+FC = [{"for_timestamp": f"2024-05-10T{h:02d}:00:00+00:00", "peak_probability": pr, "predicted_peak": pr >= 0.34, "actual_peak_within_30min": act, "forecast_kind": "walk_forward", "model_name": "m"}
+      for h, pr, act in [(1, 0.02, False), (2, 0.9, True), (3, 0.6, False), (4, 0.1, True), (5, 0.97, True)]]
+
+
 def fake_db(table, query):
-    return {"scan_feed": SCAN, "nasa_radiation": RAD, "nasa_space_weather": WX, "nasa_labs": [{"timepoint": "L-92", "value": 13.2, "unit": "g/dL", "status": "within_supplied_range", "value_quality": "as_supplied"}]}[table]
+    return {"radiation_forecasts": FC, "scan_feed": SCAN, "nasa_radiation": RAD, "nasa_space_weather": WX, "nasa_labs": [{"timepoint": "L-92", "value": 13.2, "unit": "g/dL", "status": "within_supplied_range", "value_quality": "as_supplied"}]}[table]
 
 
 def setup():
@@ -40,6 +44,8 @@ def test_answers_come_from_the_sources_and_missing_values_are_said():
     r = A.reply("space weather")
     assert "Kp 9" in r["text"] and "1 solar particle event reports" in r["text"]
     assert "not your results" in A.reply("labs C002 hemoglobin")["text"]
+    r = A.reply("what did the forecast say on 10 May")
+    assert r["intent"] == "forecast" and "called a peak 3 times out of 5, and 2 of those calls were right" in r["text"] and "caught 2 of them" in r["text"] and "97 percent at 05:00" in r["text"] and "not a live forecast" in r["text"]
 
 
 def test_a_failed_source_is_reported_not_guessed():
