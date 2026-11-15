@@ -1,7 +1,7 @@
 // Fill these in from your Supabase project (Settings > API). The anon key is safe to ship: the table only allows inserts.
 export const CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://fvbvplcdmpoifwjylgno.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_eO7f18_oGfyr2fKHBOkIOg_rrO8yshX",
   VISION_URL: "",              // optional: folder holding vision_bundle.mjs and wasm/ if you host the face tracker yourself
   MODEL_URL: "",               // optional: your own copy of face_landmarker.task
   QUALITY_MIN: 0.35,           // heart and breathing values below this signal quality are not shown or saved
