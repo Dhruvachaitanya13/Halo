@@ -1,13 +1,13 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js";
-import * as D from "./dsp.js";
-import { runMission } from "./mission.js";
+import { CONFIG } from "./config.js?v=0.12.0";
+import * as D from "./dsp.js?v=0.12.0";
+import { runMission } from "./mission.js?v=0.12.0";
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(); // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.11.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.12.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -128,10 +128,15 @@ async function startScan() {
   }, 1000);
   const startedAt = performance.now();
 
-  const avg = (x, y, w, h) => {
-    x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y)); w = Math.min(W - x, Math.round(w)); h = Math.min(H - y, Math.round(h));
+  // Skin colour is read from a second canvas at the camera's own resolution (up to 640 wide), not from the 320-wide tracking canvas:
+  // four times the pixels in each region, so less camera noise in the average. Coordinates arrive in tracking-canvas units.
+  const samp = document.createElement("canvas"), sctx = samp.getContext("2d", { willReadFrequently: true });
+  const SW = Math.min(640, video.videoWidth || W), SH = Math.round((SW * H) / W), SK = SW / W; samp.width = SW; samp.height = SH;
+  const avg = (x, y, w, h, fine = false) => {
+    const c = fine ? sctx : wctx, k = fine ? SK : 1, CW = fine ? SW : W, CH = fine ? SH : H;
+    x = Math.max(0, Math.round(x * k)); y = Math.max(0, Math.round(y * k)); w = Math.min(CW - x, Math.round(w * k)); h = Math.min(CH - y, Math.round(h * k));
     if (w < 4 || h < 4) return null;
-    const d = wctx.getImageData(x, y, w, h).data; let r = 0, g = 0, b = 0;
+    const d = c.getImageData(x, y, w, h).data; let r = 0, g = 0, b = 0;
     for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
     const n = d.length / 4; return { r: r / n, g: g / n, b: b / n, n };
   };
@@ -146,7 +151,7 @@ async function startScan() {
   // ---- Skin colour is sampled on EVERY camera frame, not only on frames the face tracker has finished.
   // The tracker can take 50-150 ms per frame (Safari runs it on the CPU), which used to leave the pulse
   // signal with 7-15 samples a second. The pulse is a brightness change of well under 1%, so it needs every frame.
-  const regionsOf = (b) => ({ forehead: [b.x + 0.3 * b.w, b.y + 0.08 * b.h, 0.4 * b.w, 0.14 * b.h], left: [b.x + 0.14 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h], right: [b.x + 0.64 * b.w, b.y + 0.5 * b.h, 0.22 * b.w, 0.18 * b.h] });
+  const regionsOf = (b) => ({ forehead: [b.x + 0.28 * b.w, b.y + 0.07 * b.h, 0.44 * b.w, 0.16 * b.h], left: [b.x + 0.13 * b.w, b.y + 0.49 * b.h, 0.24 * b.w, 0.2 * b.h], right: [b.x + 0.63 * b.w, b.y + 0.49 * b.h, 0.24 * b.w, 0.2 * b.h] });
   const sampleSkin = (now) => {
     if (!running || t0 === null || !box || now - boxAt > 1200) return;                          // no recent face
     wctx.drawImage(video, 0, 0, W, H);
@@ -162,8 +167,9 @@ async function startScan() {
       }
     }
     if (now < holdUntil) return;                                     // the head just moved: skip skin colour for a moment
+    sctx.drawImage(video, 0, 0, SW, SH);
     for (const [name, q] of Object.entries(regionsOf(box))) {
-      const a = avg(...q); if (!a) continue;
+      const a = avg(...q, true); if (!a) continue;
       R += a.r * a.n; G += a.g * a.n; B += a.b * a.n; N += a.n; state.roi[name].push({ t, r: a.r, g: a.g, b: a.b });
     }
     if (N) { state.roi.all.push({ t, r: R / N, g: G / N, b: B / N }); state.light.push(G / N); dbg.samples = (dbg.samples || 0) + 1; }
@@ -179,11 +185,11 @@ async function startScan() {
   const tick = () => {
     if (!running) return;
     const now = performance.now();
-    // A slow face tracker (over about 28 ms a frame, typical for Safari) blocks camera frames while it runs. On such devices the first 60% of the scan
+    // A slow face tracker (over about 28 ms a frame, typical for Safari) blocks camera frames while it runs. On such devices the first 70% of the scan
     // gives the pulse priority: the tracker only refreshes the face position 2.5 times a second and every camera frame goes to the colour sampler.
     // The rest of the scan runs the tracker at full speed to time blinks. Fast devices do both throughout.
     if (dbg.frames === 8 && state.phase === "scan" && dbg.ms > 28 && !pulseFirst) { pulseFirst = true; state.phased = true; ui.log("Slow face tracking on this device: measuring pulse first, then blinks"); }
-    const tNow = t0 === null ? 0 : (now - t0) / 1000, pulsePhase = pulseFirst && state.phase === "scan" && tNow < 0.6 * mode.scan;
+    const tNow = t0 === null ? 0 : (now - t0) / 1000, pulsePhase = pulseFirst && state.phase === "scan" && tNow < 0.7 * mode.scan;
     if (pulseFirst && !pulsePhase && state.blinkFrom === null) { state.blinkFrom = tNow; ui.log("Pulse captured. Now timing blinks."); }
     if (now - lastT >= (pulsePhase ? 400 : Math.max(45, 2 * dbg.ms)) && video.readyState >= 2 && video.videoWidth > 0) {   // leaves at least half of the time free for the colour sampler
       lastT = now; state.frames++;
@@ -405,7 +411,7 @@ function drawSeries(series) {
 async function sendToAgent(record) {
   const el = $("agentmsg");
   if (state.simulated || !CONFIG.AGENT_URL) { el.hidden = true; return; }
-  el.hidden = false; el.textContent = "Sending to the HALO agent...";
+  el.hidden = false; el.textContent = "Sending to the HALO agent..."; $("consolelink").hidden = false;
   try {
     const r = await fetch(`${CONFIG.AGENT_URL.replace(/\/$/, "")}/api/v1/scan`, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ crew_id: params.get("crew") || CONFIG.AGENT_CREW || "LIVE_01", record }) });

@@ -42,8 +42,9 @@ export function bandpass(x, fs, lo, hi) {
 }
 
 /** Strongest frequency in [fmin, fmax] Hz and how much of the band's power sits at it (0..1). */
-export function dominantFrequency(x, fs, fmin, fmax, step = 0.5 / 60) {
-  const n = x.length; if (n < 16) return { freq: NaN, quality: 0 };
+/** Power spectrum of x on a fine frequency grid (Hann window, direct transform so the grid can be finer than an FFT's). */
+export function spectrum(x, fs, fmin, fmax, step = 0.5 / 60) {
+  const n = x.length; if (n < 16) return null;
   const m = mean(x), w = x.map((v, i) => (v - m) * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1))));
   const freqs = [], pow = [];
   for (let f = fmin; f <= fmax + 1e-9; f += step) {
@@ -51,6 +52,10 @@ export function dominantFrequency(x, fs, fmin, fmax, step = 0.5 / 60) {
     for (let i = 0; i < n; i++) { re += w[i] * Math.cos(k * i); im -= w[i] * Math.sin(k * i); }
     freqs.push(f); pow.push(re * re + im * im);
   }
+  return { freqs, pow, n, step };
+}
+/** Peak of a spectrum and how convincingly it stands out. n is the number of samples the spectrum came from. */
+export function peakQuality(freqs, pow, n, fs, step) {
   let p = 0; for (let i = 1; i < pow.length; i++) if (pow[i] > pow[p]) p = i;
   const total = pow.reduce((s, v) => s + v, 0) || 1e-12;
   const half = Math.max(1, Math.round(1.2 / (n / fs) / step));          // main-lobe half width in grid steps
@@ -62,8 +67,10 @@ export function dominantFrequency(x, fs, fmin, fmax, step = 0.5 / 60) {
   const share = Math.min(1, peak / total), K = Math.max(2, pow.length / (2 * half + 1)), g = Math.max(0.35, 1 - Math.pow(0.05 / K, 1 / (K - 1)));
   return { freq: freqs[p], quality: share <= g ? (0.35 * share) / g : 0.35 + (0.65 * (share - g)) / (1 - g) };
 }
-
-/** POS pulse extraction from uniformly sampled mean skin colour. Returns the pulse waveform. */
+export function dominantFrequency(x, fs, fmin, fmax, step = 0.5 / 60) {
+  const sp = spectrum(x, fs, fmin, fmax, step); if (!sp) return { freq: NaN, quality: 0 };
+  return peakQuality(sp.freqs, sp.pow, sp.n, fs, step);
+}
 export function pos(r, g, b, fs) {
   const n = r.length, l = Math.max(8, Math.round(1.6 * fs)), h = new Array(n).fill(0);
   for (let s = 0; s + l <= n; s++) {
@@ -258,11 +265,24 @@ export function estimateHeartRateAdvanced(regions, { fs = 30, method = "auto", m
     if (!samples || samples.length < 2 || samples[samples.length - 1].t - samples[0].t < minSeconds) continue;
     if (mean(samples.map((s) => s.g)) < 5) continue;
     for (const m of methods) {
-      const pulse = pulseFrom(samples, { fs, method: m }), { freq, quality } = dominantFrequency(pulse, fs, 0.7, 3.0);
+      const pulse = pulseFrom(samples, { fs, method: m }), spec = spectrum(pulse, fs, 0.7, 3.0), { freq, quality } = spec ? peakQuality(spec.freqs, spec.pow, spec.n, fs, spec.step) : { freq: NaN, quality: 0 };
       const edge = freq <= 0.7 + 0.04 || freq >= 3.0 - 0.04;             // a peak on the edge of the band is drift or flicker, not a pulse
-      candidates.push({ region, method: m, bpm: Math.round(freq * 600) / 10, quality: edge ? 0 : Math.round(quality * 100) / 100, pulse });
+      candidates.push({ region, method: m, bpm: Math.round(freq * 600) / 10, quality: edge ? 0 : Math.round(quality * 100) / 100, pulse, spec, rawBpm: Math.round(freq * 600) / 10, rawQuality: quality });
     }
   }
+  // The plain green channel is the most sensitive method, but it does not cancel brightness changes that hit the whole face at once
+  // (screen light, auto-exposure, lamp flicker) and can report that flicker as a heart rate. POS does cancel them. So a green result
+  // only counts when POS on the same region also has clearly more power than chance at that rate (5 times the share noise would put there; in simulation this cut false readings from steady 1% flicker from 60 in 60 to 1 in 60).
+  if (methods.includes("pos")) for (const c of candidates) {
+    if (c.method !== "green" || !c.spec) continue;
+    const ref = candidates.find((o) => o.method === "pos" && o.region === c.region && o.spec);
+    if (!ref) { c.quality = 0; continue; }
+    const { pow, freqs, n, step } = ref.spec, half = Math.max(1, Math.round(1.2 / (n / fs) / step)), idx = Math.round((c.rawBpm / 60 - freqs[0]) / step);
+    let near = 0; for (let i = Math.max(0, idx - half); i <= Math.min(pow.length - 1, idx + half); i++) near += pow[i];
+    const share = near / (pow.reduce((a, v) => a + v, 0) || 1e-12), chance = (2 * half + 1) / pow.length;
+    if (share < 5 * chance) c.quality = 0;
+  }
+  for (const c of candidates) { delete c.spec; delete c.rawBpm; delete c.rawQuality; }
   if (!candidates.length) return { bpm: null, quality: 0, confidence: 0, reason: "need_more_time_or_light", candidates: [] };
   const best = candidates.reduce((a, c) => (c.quality > a.quality ? c : a));
   const usable = candidates.filter((c) => c !== best && c.quality >= Q);
@@ -338,8 +358,10 @@ export function baselineStats(values) {
 }
 export function deviation(value, base, minN = 3) {
   if (typeof value !== "number" || !base || base.n < minN || base.median === null) return null;
-  const spread = Math.max(base.mad * 1.4826, 0.03 * Math.abs(base.median), 1e-9);      // floor: 3% of the baseline
-  return Math.round(((value - base.median) / spread) * 10) / 10;
+  // Floor on the spread: 3% of the baseline or of today's value, whichever is larger. Without the second part a baseline of exactly 0
+  // (for example blink counts from earlier failed scans) turns any reading into a deviation of billions. The result is capped at +-9.9.
+  const spread = Math.max(base.mad * 1.4826, 0.03 * Math.max(Math.abs(base.median), Math.abs(value)), 1e-6);
+  return Math.max(-9.9, Math.min(9.9, Math.round(((value - base.median) / spread) * 10) / 10));
 }
 
 /** Grade the recording itself, so a weak scan is reported as weak rather than as a health finding. */

@@ -209,3 +209,14 @@ Based on the first scan saved from a real device (heart rate missing, face track
 - Each real scan is also sent to the HALO agent (`POST {AGENT_URL}/api/v1/scan` as `{crew_id, record}`) when `AGENT_URL` is set in `js/config.js`. The results page shows the agent's answer, for example "Baseline building (1/3)". Simulated runs are never sent. A link with `?crew=LIVE_02` files the scan under that crew id.
 - The agent must be on https for phones to reach it from the live page. `http://localhost` only works for a browser on the same computer.
 - Checked: a full scan in headless Chromium reached a locally running agent, which accepted it and listed the crew. Not checked: against a deployed agent.
+
+## Version 0.12
+
+From the second real-device scan (heart signal quality 26%, needing 35%; 27 colour samples a second; "+8000000000 vs your baseline" on blink rate; "Not saved: no database is configured" on a browser that held an old cached config file).
+
+- **Stale files.** The page now loads its scripts and stylesheet with a version in the address, so a browser cannot keep using an old `config.js`. That was why one browser showed "no database is configured" and no agent line while the deployed config was correct.
+- **Baseline comparison.** A baseline of exactly 0 (blink counts from earlier failed scans) turned any reading into a deviation of billions. The spread now has a sensible floor and the result is capped at +-9.9.
+- **Heart rate, more signal.** Skin colour is read at the camera's own resolution (up to 640 wide, four times the pixels), the three skin regions are a little larger, and on slow devices the pulse phase is 70% of the scan.
+- **Heart rate, fewer false readings.** The plain green channel is the most sensitive method but does not cancel brightness changes that hit the whole face (screen light, auto-exposure, lamp flicker). A green result now only counts when POS on the same region also shows clearly more power than chance at that rate. In simulation with a steady 1% flicker and no pulse, false heart rates fell from 60 in 60 runs to 1 in 60; correct readings of a weak pulse went from 51 to 45 in 60.
+- **Crew console** (`../console.html`): a page for the HALO agent with crew status, the daily report, the crew SOS checklists, questions about a step, and the demo scenes. The results page links to it.
+- Checked: 27 unit tests; the console driven end to end against a locally running agent; a full scan in headless Chromium with the real face tracker. Not checked: Safari, a live person, or the console against the deployed agent.

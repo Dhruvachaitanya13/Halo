@@ -11,6 +11,7 @@ HALO is a prototype. It is not a medical device and its results are not medical 
 |---|---|
 | Project page and health check (start here) | https://dhruvachaitanya13.github.io/Halo/ |
 | QR page for the health check | https://dhruvachaitanya13.github.io/Halo/scan/ |
+| Crew console (agent status, daily report, crew SOS) | https://dhruvachaitanya13.github.io/Halo/console.html |
 | HALO agent API (interactive page) | https://halo-production-a2375a44.up.railway.app/docs |
 
 Open the QR page on a laptop, scan the code with a phone, and the check runs in the phone's browser.
