@@ -199,7 +199,8 @@ async def inbound_call(request: Request):
 async def voice_answer(request: Request):
     form = await verify(request)
     heard = (form.get("SpeechResult") or "").strip()
-    sender = form.get("From") or form.get("CallSid", "")
+    # On a call HALO placed, "From" is HALO's own number and the person is "To"; on a call someone made to HALO it is the other way round.
+    sender = (form.get("To") if str(form.get("Direction", "")).startswith("outbound") else form.get("From")) or form.get("CallSid", "")
     r = assistant.reply(heard, channel="voice", sender=sender)
     v = VoiceResponse()
     v.say(r["text"], voice=VOICE)
@@ -209,6 +210,34 @@ async def voice_answer(request: Request):
     _listen(v, "Say done, can't, changed or skip." if r["intent"] in ("emergency", "sos_step", "sos_question") else "Anything else?")
     v.say("Goodbye from HALO.", voice=VOICE)
     return xml(v)
+
+
+# ----------------------------------------------------------------- HALO calls the mission phone
+_calls: list = []
+
+
+@app.post("/call/start")
+def call_mission_phone():
+    """Ring the first mission-control number and connect it to the talking assistant (the same one that answers when someone dials HALO).
+    It only ever calls the configured number, never one supplied by the caller, and at most once a minute and ten times a day."""
+    if not CONTROL:
+        raise HTTPException(503, "No mission phone is configured")
+    if not BASE:
+        raise HTTPException(503, "PUBLIC_BASE_URL is not set")
+    now = time.time()
+    _calls[:] = [t for t in _calls if now - t < 86400]
+    if _calls and now - _calls[-1] < 60:
+        raise HTTPException(429, "A call was just placed. Wait a minute.")
+    if len(_calls) >= 10:
+        raise HTTPException(429, "Daily call limit reached")
+    try:
+        c = client().calls.create(to=CONTROL[0], from_=FROM, url=BASE + "/twilio/voice", method="POST")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, "Twilio refused the call: " + str(e)[:160])
+    _calls.append(now)
+    return {"calling": "the mission phone", "call_sid": c.sid}
 
 
 # ----------------------------------------------------------------- point the Twilio number at this service
@@ -222,7 +251,9 @@ def point_number_at_halo() -> str:
     try:
         found = Client(SID, TOKEN).incoming_phone_numbers.list(phone_number=FROM, limit=1)
         if not found:
-            return "failed: TWILIO_FROM_NUMBER is not a number in this Twilio account"
+            owned = len(Client(SID, TOKEN).incoming_phone_numbers.list(limit=20))
+            return (f"not owned: {FROM} can place calls and texts for this account but is not a number the account owns (it owns {owned}), "
+                    "so nobody can dial in. HALO can still call out. To receive calls, claim or buy a number in Twilio and set TWILIO_FROM_NUMBER to it")
         voice, sms = BASE + "/twilio/voice", BASE + "/twilio/sms"
         if found[0].voice_url == voice and found[0].sms_url == sms:
             return "already set"
@@ -238,4 +269,5 @@ WEBHOOKS = point_number_at_halo()
 @app.get("/health")
 def health():
     return {"ok": True, "assistant": True, "twilio_configured": bool(SID and TOKEN and FROM), "browser_calling": bool(SID and API_KEY and API_SECRET and TWIML_APP),
-            "number_webhooks": WEBHOOKS, "mission_control_numbers": len(CONTROL), "signature_check": VALIDATE}
+            "number_webhooks": WEBHOOKS, "can_call_out": bool(SID and TOKEN and FROM and BASE and CONTROL), "can_receive_calls": WEBHOOKS in ("set", "already set"),
+            "mission_control_numbers": len(CONTROL), "signature_check": VALIDATE}

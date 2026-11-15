@@ -33,6 +33,10 @@ Every number comes from the HALO agent or the HALO database in that same request
 3. Add variables on Railway: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `MISSION_CONTROL_NUMBERS` for alerts.
 4. A trial account can only text and call numbers you have verified in the console, and plays a trial notice before each call.
 
+## HALO calls you
+
+`POST /call/start` rings the first number in `MISSION_CONTROL_NUMBERS` and connects it to the talking assistant. `assistant.html` shows a "Call me" button for it. It never calls a number supplied by the page, and is limited to one call a minute and ten a day. This works on a Twilio trial account even when the account owns no number to dial in to; `/health` shows `can_call_out` and `can_receive_calls`.
+
 ## Add "Call HALO" on the web page (Twilio Voice SDK)
 
 1. Twilio console > Voice > TwiML Apps > create one with Voice request URL `POST {address}/twilio/voice`. Copy its SID (starts with `AP`).

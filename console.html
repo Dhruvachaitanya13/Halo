@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO crew console</title><link rel="stylesheet" href="scan/style.css?v=0.14.1">
+<title>HALO crew console</title><link rel="stylesheet" href="scan/style.css?v=0.14.2">
 <style>
   main { max-width: 760px }
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; font: 11px/1.4 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
@@ -84,8 +84,8 @@
 <p id="err" class="warn" hidden></p>
 </main>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.14.1";
-import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.14.1";
+import { CONFIG } from "./scan/js/config.js?v=0.14.2";
+import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.14.2";
 const API = (new URLSearchParams(location.search).get("agent") || CONFIG.AGENT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id), el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const call = async (path, body, method) => {

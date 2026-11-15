@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Talk to HALO</title><link rel="stylesheet" href="scan/style.css?v=0.14.1">
+<title>Talk to HALO</title><link rel="stylesheet" href="scan/style.css?v=0.14.2">
 <style>
   html, body { height: 100% } main { max-width: 720px; display: flex; flex-direction: column; height: 100dvh; padding-bottom: 12px }
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font: 11px/1.4 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
@@ -42,6 +42,9 @@
 <div class="call" id="callbar" hidden><div><b id="calltitle">Call HALO from this page</b><small id="callsub">A phone call through Twilio. Twilio listens and speaks; your microphone is used.</small></div>
   <button id="callbtn" type="button">Call HALO</button><button id="mutebtn" class="ghost" type="button" hidden>Mute</button></div>
 
+<div class="call" id="ringbar" hidden><div><b>Have HALO call the mission phone</b><small id="ringsub">HALO rings the phone number set for this mission and you talk to the same assistant by voice.</small></div>
+  <button id="ringbtn" type="button">Call me</button></div>
+
 <div class="chat" id="chat" role="log" aria-live="polite" aria-label="Conversation with HALO"></div>
 <div class="chips" id="chips"></div>
 <form class="composer" id="form">
@@ -54,8 +57,8 @@
 </main>
 <script src="vendor/twilio.min.js?v=2.19.0"></script>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.14.1";
-import { createVoice } from "./scan/js/voice.js?v=0.14.1";
+import { CONFIG } from "./scan/js/config.js?v=0.14.2";
+import { createVoice } from "./scan/js/voice.js?v=0.14.2";
 const QS = new URLSearchParams(location.search), API = (QS.get("assistant") || CONFIG.ASSISTANT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id);
 let sender = ""; try { sender = localStorage.getItem("halo_chat_id") || ""; if (!sender) { sender = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem("halo_chat_id", sender); } } catch { sender = String(Date.now()); }
@@ -118,6 +121,16 @@ $("callbtn").onclick = async () => {
 };
 $("mutebtn").onclick = () => { if (!call) return; const m = !call.isMuted(); call.mute(m); $("mutebtn").textContent = m ? "Unmute" : "Mute"; };
 
+$("ringbtn").onclick = async () => {
+  $("ringbtn").disabled = true; $("ringsub").textContent = "Placing the call...";
+  try {
+    const r = await fetch(API + "/call/start", { method: "POST" }), j = await r.json().catch(() => null);
+    if (r.ok) { $("ringsub").textContent = "Ringing the mission phone now. Answer it and talk to HALO."; add("HALO is calling the mission phone.", "sys"); }
+    else $("ringsub").textContent = r.status === 429 ? (j?.detail || "Wait a minute before another call.") : `The call could not be placed (${j?.detail || r.status}).`;
+  } catch { $("ringsub").textContent = "The call could not be placed: the assistant service did not answer."; }
+  setTimeout(() => ($("ringbtn").disabled = false), 60000);
+};
+
 async function init() {
   if (!API) { $("dot").className = "dot bad"; $("conn").textContent = "The assistant service address is not set (ASSISTANT_URL in scan/js/config.js)."; $("callst").textContent = $("smsst").textContent = "Not set up";
     add("The HALO assistant service has not been deployed yet, so I cannot answer here. The crew console still works.", "sys"); $("q").disabled = $("send").disabled = $("mic").disabled = true; return; }
@@ -125,7 +138,9 @@ async function init() {
     const h = await (await fetch(API + "/health")).json(); $("dot").className = "dot ok"; $("conn").textContent = "HALO assistant connected";
     const sms = h.twilio_configured, web = h.browser_calling && typeof Twilio !== "undefined";
     $("ch-sms").className = "ch" + (sms ? " on" : ""); $("smsst").textContent = sms ? "On: text the HALO number" : "Not set up";
-    $("ch-call").className = "ch" + (web || sms ? " on" : ""); $("callst").textContent = web ? "On: button below" : sms ? "On: dial the HALO number" : "Not set up"; $("callbar").hidden = !web;
+    const dialIn = h.can_receive_calls, out = h.can_call_out;
+    $("ch-call").className = "ch" + (web || dialIn || out ? " on" : ""); $("callst").textContent = web ? "On: button below" : dialIn ? "On: dial the HALO number" : out ? "On: HALO calls you" : "Not set up"; $("callbar").hidden = !web; $("ringbar").hidden = !out;
+    if (sms && !dialIn) $("smsst").textContent = "Outgoing alerts only";
   } catch { $("dot").className = "dot bad"; $("conn").textContent = "The HALO assistant cannot be reached right now."; $("callst").textContent = $("smsst").textContent = "Unknown"; }
   add("I am HALO. Ask about the crew, the daily report, your latest health check, or NASA radiation and space weather. In an emergency, say what is happening.", "halo");
   chips(["Crew status", "Daily report", "My last check", "Radiation on 10 May", "Space weather", "Emergency"]);
