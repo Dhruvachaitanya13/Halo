@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HALO data</title>
+<meta name="description" content="The NASA data HALO uses, as tables you can read, search and download.">
+<meta name="theme-color" content="#000000"><link rel="icon" href="icon.svg"><link rel="stylesheet" href="scan/style.css?v=0.20.0">
+<style>
+  main { max-width: 1120px; padding: 0 28px 40px }
+  .bar { position: sticky; top: 0; z-index: 10; margin: 0 -28px; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; background: rgba(0, 0, 0, .72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px) }
+  .bar a.home { color: var(--body); text-decoration: none; font: 500 15px/1 var(--sans); padding: 10px 14px; border-radius: 999px } .bar a.home:hover { color: #fff; background: var(--card2) }
+  .head { padding: 44px 0 24px } .head h1 { font: 700 44px/1.08 var(--sans); letter-spacing: -1.4px; margin: 0 0 10px } .head p { font-size: 17px; margin: 0; max-width: 640px }
+  .picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px }
+  .picker button { width: auto; margin: 0; min-height: 44px; padding: 10px 18px; border-radius: 999px; font: 600 15px/1 var(--sans); background: var(--card2); border-color: var(--line); color: var(--body); box-shadow: none }
+  .picker button[aria-pressed=true] { background: #fff; border-color: #fff; color: #000 }
+  .about { display: grid; grid-template-columns: 1fr auto; gap: 16px 24px; align-items: end; margin-bottom: 14px } .about h2 { font-size: 24px; margin: 0 0 4px } .about p { margin: 0; font-size: 15px; max-width: 700px }
+  .about .links { display: flex; gap: 10px; flex-wrap: wrap } .about .links a { display: inline-block; width: auto; margin: 0; min-height: 0; padding: 11px 16px; border-radius: 999px; font-size: 14px }
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 }
+  .nums div { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; background: var(--card2) } .nums b { display: block; font: 700 26px/1.1 var(--sans); letter-spacing: -.6px } .nums span { font-size: 13.5px; color: var(--dim) }
+  .panel { background: #fff; border-radius: 18px; padding: 18px; color: #0e0e0e; --line: #e8e8ec; --dim: #63636b; --text: #0e0e0e; --body: #232323; --card2: #f5f5f5; color-scheme: light }
+  .panel h3 { margin: 0 0 10px; font-size: 16px } #chart { width: 100%; height: 220px; display: block } .chartbox { margin-bottom: 16px } .chartbox small { margin-top: 6px }
+  .tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px }
+  .tools input[type=search] { flex: 1; min-width: 200px; margin: 0; font: 15px/1.3 var(--sans); min-height: 44px; padding: 10px 14px; border-radius: 999px; border: 1px solid #c6c6cc; background: #fff; color: #0e0e0e }
+  .tools label { margin: 0; font: 500 14px/1 var(--sans); display: flex; align-items: center; color: #232323 } .tools .count { font-size: 14px; color: #63636b; margin-left: auto }
+  .scroll { overflow: auto; border: 1px solid #e8e8ec; border-radius: 12px; max-height: 62vh }
+  table { border-collapse: collapse; width: 100%; font: 13.5px/1.35 var(--sans); font-variant-numeric: tabular-nums }
+  th { position: sticky; top: 0; background: #f5f5f5; text-align: left; font-weight: 600; padding: 10px 12px; white-space: nowrap; border-bottom: 1px solid #dcdce2; cursor: pointer; user-select: none } th[aria-sort=ascending]::after { content: " \2191" } th[aria-sort=descending]::after { content: " \2193" }
+  td { padding: 8px 12px; border-bottom: 1px solid #f0f0f3; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis } tr:last-child td { border-bottom: 0 } tbody tr:hover td { background: #faf9ff }
+  td.num { text-align: right } td .pill { font-size: 11px; padding: 3px 7px }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 14px; color: #63636b }
+  .pager div { display: flex; gap: 8px } .pager button { width: auto; margin: 0; min-height: 40px; padding: 8px 16px; border-radius: 999px; font-size: 14px; background: #fff; color: #0e0e0e; border-color: #c6c6cc; box-shadow: none }
+  .state { padding: 40px 0; text-align: center; color: #63636b }
+  footer { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 14px; color: var(--dim) }
+  @media (max-width: 760px) { main { padding: 0 16px 28px } .bar { margin: 0 -16px; padding: 12px 16px } .head { padding: 28px 0 18px } .head h1 { font-size: 32px } .about { grid-template-columns: 1fr } .nums { grid-template-columns: 1fr 1fr } .panel { padding: 12px } }
+</style></head>
+<body class="wide"><main>
+<header class="bar"><a class="brandmark" href="./" aria-label="HALO home"><span class="logo" aria-hidden="true"></span><span class="wordmark">HALO</span></a><a class="home" href="./">Back to HALO</a></header>
+
+<div class="head"><h1>The data behind HALO</h1><p>NASA records of the space environment and of astronaut health, as tables you can read, search and download. This is historical reference data, not a live feed.</p></div>
+
+<div class="picker" id="picker" role="group" aria-label="Choose a dataset"></div>
+<div class="about"><div><h2 id="title"></h2><p id="desc"></p></div><div class="links"><a class="btn" id="dl" download>Download CSV</a><a class="btn ghost" id="src" target="_blank" rel="noopener">NASA source</a></div></div>
+<div class="nums" id="nums"></div>
+
+<div class="panel">
+  <div class="chartbox" id="chartbox" hidden><h3 id="charttitle"></h3><canvas id="chart"></canvas><small id="chartnote"></small></div>
+  <div class="tools"><input type="search" id="q" placeholder="Search this table" aria-label="Search this table"><label><input type="checkbox" id="allcols"> All columns</label><span class="count" id="count"></span></div>
+  <div class="scroll"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table><div class="state" id="state">Loading...</div></div>
+  <div class="pager"><span id="pageinfo"></span><div><button id="prev" type="button">Previous</button><button id="next" type="button">Next</button></div></div>
+</div>
+
+<footer>Columns that HALO calculated, such as five-minute averages and peak flags, are its own and are not NASA values. Radiation is cabin dose rate, not any person's dose.</footer>
+</main>
+<script>
+// A reader for the CSV files in data/. It loads one file, shows it as a table with search, sorting and pages, and draws one chart. Nothing is sent anywhere.
+const $ = (id) => document.getElementById(id), PAGE = 50;
+const SETS = {
+  radiation: { name: "ISS radiation", file: "data/radiation_5min.csv", title: "ISS radiation, May 2024",
+    desc: "Dose rate inside the Columbus module of the International Space Station, measured by the DOSTEL-1 instrument, averaged into five-minute steps with the station's position.",
+    src: "https://visualization.osdr.nasa.gov/radlab/",
+    cols: [["timestamp", "Time (UTC)"], ["dose_rate_ugy_h", "Dose rate, \u00b5Gy/h"], ["dose_rate_max_ugy_h", "Highest in step"], ["latitude", "Latitude"], ["longitude", "Longitude"], ["altitude_km", "Altitude, km"], ["region", "Region"], ["is_peak", "Peak"]],
+    chart: { x: "timestamp", y: "dose_rate_ugy_h", title: "Dose rate over the month", note: "Each point is the highest five-minute dose rate in an hour, in \u00b5Gy/h. The regular spikes are passes through the South Atlantic Anomaly." },
+    nums: (r) => [[r.length.toLocaleString(), "five-minute readings"], ["1\u201330 May 2024", "period covered"], [max(r, "dose_rate_ugy_h").toFixed(1), "highest dose rate, \u00b5Gy/h"], [r.filter((x) => x.is_peak === "True").length.toLocaleString(), "readings flagged as peaks"]] },
+  weather: { name: "Space weather", file: "data/space_weather_events.csv", title: "Space weather events, May 2024",
+    desc: "Geomagnetic storm readings (Kp index) and solar energetic particle events recorded by NASA's space weather database for the same month.",
+    src: "https://ccmc.gsfc.nasa.gov/DONKI/",
+    cols: [["timestamp", "Time (UTC)"], ["event_type", "Event"], ["value", "Value"], ["unit", "Unit"], ["detail", "Detail"], ["event_id", "NASA event id"]],
+    nums: (r) => [[r.length, "records"], [r.filter((x) => /storm/.test(x.event_type)).length, "storm readings"], [r.filter((x) => /particle|sep/i.test(x.event_type)).length, "particle events"], [max(r.filter((x) => /storm/.test(x.event_type)), "value"), "highest Kp index"]] },
+  labs: { name: "Astronaut lab results", file: "data/inspiration4_labs_long_corrected.csv", title: "Inspiration4 crew lab results",
+    desc: "Blood test results for the four SpaceX Inspiration4 astronauts before and after flight, from NASA's Open Science Data Repository. Used as reference values only.",
+    src: "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+    cols: [["crew_id", "Crew"], ["timepoint", "Timepoint"], ["phase", "Phase"], ["panel", "Panel"], ["analyte_label", "Test"], ["value", "Value"], ["unit", "Unit"], ["normal_low", "Normal low"], ["normal_high", "Normal high"], ["status", "Status"]],
+    nums: (r) => [[r.length.toLocaleString(), "results"], [new Set(r.map((x) => x.analyte)).size, "different tests"], [new Set(r.map((x) => x.crew_id)).size, "astronauts"], [new Set(r.map((x) => x.timepoint)).size, "timepoints"]] },
+};
+const max = (rows, k) => rows.reduce((m, r) => (isFinite(+r[k]) && r[k] !== "" && +r[k] > m ? +r[k] : m), -Infinity);
+
+/** CSV text -> array of objects. Handles quoted fields with commas and doubled quotes. */
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) { const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true; else if (c === ",") { row.push(cur); cur = ""; } else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; } else if (c !== "\r") cur += c; }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  const head = rows.shift() || []; return { head, rows: rows.filter((r) => r.length === head.length).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i]]))) };
+}
+const cache = {}; let key = new URLSearchParams(location.search).get("set"), all = [], head = [], view = [], page = 0, sort = { k: null, dir: 1 };
+if (!SETS[key]) key = "radiation";
+const isNum = (v) => v !== "" && v != null && isFinite(+v);
+const fmt = (v) => (v === "" || v == null ? "" : isNum(v) && /\./.test(v) ? String(Math.round(+v * 1000) / 1000) : /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\+00:00$/.test(v) ? v.slice(0, 16) : v);
+
+function columns() { const s = SETS[key]; return $("allcols").checked ? head.map((h) => [h, h.replace(/_/g, " ")]) : s.cols.filter(([k]) => head.includes(k)); }
+function render() {
+  const cols = columns(), s = sort, start = page * PAGE, rows = view.slice(start, start + PAGE);
+  $("thead").innerHTML = "<tr>" + cols.map(([k, l]) => `<th scope="col" data-k="${k}"${s.k === k ? ` aria-sort="${s.dir > 0 ? "ascending" : "descending"}"` : ""}>${l}</th>`).join("") + "</tr>";
+  const cell = (k, v) => (k === "is_peak" ? (v === "True" ? '<span class="pill rest">Peak</span>' : "") : k === "status" && v ? `<span class="pill ${/within/.test(v) ? "ready" : /above|below|outside/.test(v) ? "caution" : ""}">${v.replace(/_/g, " ")}</span>` : String(fmt(v)).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])));
+  $("tbody").innerHTML = rows.map((r) => "<tr>" + cols.map(([k]) => `<td${isNum(r[k]) ? ' class="num"' : ""} title="${String(r[k] ?? "").replace(/"/g, "&quot;")}">${cell(k, r[k])}</td>`).join("") + "</tr>").join("");
+  $("state").hidden = rows.length > 0; if (!rows.length) $("state").textContent = "No rows match.";
+  const pages = Math.max(1, Math.ceil(view.length / PAGE));
+  $("count").textContent = view.length === all.length ? `${all.length.toLocaleString()} rows` : `${view.length.toLocaleString()} of ${all.length.toLocaleString()} rows`;
+  $("pageinfo").textContent = view.length ? `Rows ${(start + 1).toLocaleString()}\u2013${Math.min(view.length, start + PAGE).toLocaleString()} \u00b7 page ${page + 1} of ${pages}` : "";
+  $("prev").disabled = page === 0; $("next").disabled = page >= pages - 1;
+}
+function apply() {
+  const q = $("q").value.trim().toLowerCase(); view = q ? all.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q))) : all.slice();
+  if (sort.k) { const k = sort.k, d = sort.dir; view.sort((a, b) => (isNum(a[k]) && isNum(b[k]) ? (+a[k] - +b[k]) * d : String(a[k]).localeCompare(String(b[k])) * d)); }
+  page = 0; render();
+}
+function chart() {
+  const c = SETS[key].chart; $("chartbox").hidden = !c; if (!c) return;
+  $("charttitle").textContent = c.title; $("chartnote").textContent = c.note;
+  const byHour = new Map(); for (const r of all) { const h = r[c.x].slice(0, 13), v = +r[c.y]; if (isFinite(v)) byHour.set(h, Math.max(byHour.get(h) ?? 0, v)); }
+  const pts = [...byHour.entries()], cv = $("chart"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+  const x = cv.getContext("2d"); x.scale(dpr, dpr); x.clearRect(0, 0, W, H); if (pts.length < 2) return;
+  const top = Math.max(...pts.map((p) => p[1])) * 1.08, L = 44, B = 24, T = 8, px = (i) => L + (i / (pts.length - 1)) * (W - L - 6), py = (v) => T + (1 - v / top) * (H - T - B);
+  x.font = "12px Inter, system-ui, sans-serif"; x.fillStyle = "#63636b"; x.strokeStyle = "#e8e8ec"; x.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) { const v = (top * g) / 4, y = py(v); x.beginPath(); x.moveTo(L, y); x.lineTo(W - 6, y); x.stroke(); x.textAlign = "right"; x.fillText(v.toFixed(0), L - 8, y + 4); }
+  x.textAlign = "center"; let last = ""; pts.forEach(([h], i) => { const d = h.slice(8, 10); if (d !== last && +d % 5 === 0) { x.fillText(`${+d} May`, px(i), H - 6); } last = d; });
+  x.strokeStyle = "#6336f6"; x.lineWidth = 1.4; x.beginPath(); pts.forEach(([, v], i) => (i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v)))); x.stroke();
+}
+async function load(k) {
+  key = k; const s = SETS[k]; history.replaceState(null, "", "?set=" + k);
+  [...$("picker").children].forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
+  $("title").textContent = s.title; $("desc").textContent = s.desc; $("dl").href = s.file; $("src").href = s.src; $("q").value = ""; sort = { k: null, dir: 1 };
+  $("tbody").innerHTML = ""; $("thead").innerHTML = ""; $("nums").innerHTML = ""; $("chartbox").hidden = true; $("state").hidden = false; $("state").textContent = "Loading..."; $("count").textContent = ""; $("pageinfo").textContent = "";
+  try {
+    if (!cache[k]) { const r = await fetch(s.file); if (!r.ok) throw new Error(r.status); cache[k] = parseCSV(await r.text()); }
+    if (key !== k) return; ({ head, rows: all } = cache[k]);
+    $("nums").innerHTML = s.nums(all).map(([b, t]) => `<div><b>${b}</b><span>${t}</span></div>`).join(""); apply(); chart();
+  } catch (e) { $("state").hidden = false; $("state").textContent = "This table could not be loaded. Check the connection and reload."; }
+}
+$("picker").innerHTML = Object.entries(SETS).map(([k, s]) => `<button type="button" data-k="${k}" aria-pressed="false">${s.name}</button>`).join("");
+$("picker").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) load(b.dataset.k); });
+$("q").addEventListener("input", apply); $("allcols").addEventListener("change", render);
+$("thead").addEventListener("click", (e) => { const th = e.target.closest("th"); if (!th) return; sort = { k: th.dataset.k, dir: sort.k === th.dataset.k ? -sort.dir : 1 }; apply(); });
+$("prev").addEventListener("click", () => { page--; render(); }); $("next").addEventListener("click", () => { page++; render(); });
+window.addEventListener("resize", () => { if (all.length) chart(); });
+load(key);
+</script></body></html>

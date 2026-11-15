@@ -12,16 +12,28 @@ All data downloaded from NASA data services.
 | space_weather_events.csv, storm index | NASA DONKI, GST | 5 storms | Kp values from NOAA (stated in each DONKI record) | 2-17 May 2024 |
 | space_weather_events.csv, solar particle events | NASA DONKI, SEP | 14 events | DONKI event catalogue | 9-13 May 2024 |
 
-## Exact addresses
+## Website links (use these when a form asks for a source link)
+Each one is a full https address that opens in a browser. Checked on 15 Nov 2026.
+
+| Data | Website link |
+|---|---|
+| Blood count (Inspiration4) | https://osdr.nasa.gov/bio/repo/data/studies/OSD-569 |
+| Blood chemistry, heart and vessel markers, immune markers (Inspiration4) | https://osdr.nasa.gov/bio/repo/data/studies/OSD-575 |
+| ISS radiation (DOSTEL-1) | https://visualization.osdr.nasa.gov/radlab/ |
+| Storm index and solar particle events | https://ccmc.gsfc.nasa.gov/DONKI/ |
+
+## Exact addresses (the files and queries themselves)
+The two DONKI lines use NASA's public `DEMO_KEY`, so they open without an account. The RadLab line is a query; in a browser, `>=` and `<` may need to be typed as `%3E%3D` and `%3C`.
+
 | Data | Address |
 |---|---|
-| Blood count | nasa-osdr.s3.amazonaws.com/OSD-569/version-4/Complete_Blood_Count/LSDS-7_Complete_Blood_Count_CBC.upload_SUBMITTED.csv |
-| Blood chemistry | nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Comprehensive_Metabolic_Panel/LSDS-8_Comprehensive_Metabolic_Panel_CMP.upload_SUBMITTED.csv |
-| Heart and vessel markers | nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Multiplex/LSDS-8_Multiplex_serum.cardiovascular.EvePanel_SUBMITTED.csv |
-| Immune markers | nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Multiplex/LSDS-8_Multiplex_serum_immune_EvePanel_TRANSFORMED.csv |
-| Radiation | visualization.osdr.nasa.gov/radlab/api?instrument_id=DosTel1&timestamp>=2024-05-01&timestamp<2024-05-31&module&absorbed_dose_rate&latitude&longitude&altitude&format=csv (15 two-day slices) |
-| Storm index | api.nasa.gov/DONKI/GST?startDate=2024-04-28&endDate=2024-05-31 |
-| Solar particle events | api.nasa.gov/DONKI/SEP?startDate=2024-04-28&endDate=2024-05-31 |
+| Blood count | https://nasa-osdr.s3.amazonaws.com/OSD-569/version-4/Complete_Blood_Count/LSDS-7_Complete_Blood_Count_CBC.upload_SUBMITTED.csv |
+| Blood chemistry | https://nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Comprehensive_Metabolic_Panel/LSDS-8_Comprehensive_Metabolic_Panel_CMP.upload_SUBMITTED.csv |
+| Heart and vessel markers | https://nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Multiplex/LSDS-8_Multiplex_serum.cardiovascular.EvePanel_SUBMITTED.csv |
+| Immune markers | https://nasa-osdr.s3.amazonaws.com/OSD-575/version-3/Multiplex/LSDS-8_Multiplex_serum_immune_EvePanel_TRANSFORMED.csv |
+| Radiation | https://visualization.osdr.nasa.gov/radlab/api?instrument_id=DosTel1&timestamp>=2024-05-01&timestamp<2024-05-31&module&absorbed_dose_rate&latitude&longitude&altitude&format=csv (15 two-day slices) |
+| Storm index | https://api.nasa.gov/DONKI/GST?startDate=2024-04-28&endDate=2024-05-31&api_key=DEMO_KEY |
+| Solar particle events | https://api.nasa.gov/DONKI/SEP?startDate=2024-04-28&endDate=2024-05-31&api_key=DEMO_KEY |
 
 ## Counts
 | Item | Value |
