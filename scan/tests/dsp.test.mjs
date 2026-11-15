@@ -266,3 +266,20 @@ test("breathing: noise on a still chest is not reported as a breathing rate", ()
   const t = Array.from({ length: 300 }, (_, i) => i * 0.1), real = D.estimateBreathing(t, t.map((v) => Math.sin(2 * Math.PI * 0.25 * v) + 0.3 * (rnd() - 0.5)));
   assert.ok(Math.abs(real.brpm - 15) < 1 && real.quality >= 0.6);
 });
+
+import { parseCommand, pickSymptom, isHelpRequest } from "../js/voice.js";
+test("voice: spoken replies map to the same actions as the buttons", () => {
+  const act = (t) => { const c = parseCommand(t); return c.kind === "step" ? c.action : c.kind; };
+  assert.equal(act("done"), "done"); assert.equal(act("Okay, did it"), "done"); assert.equal(act("yes"), "done");
+  assert.equal(act("I can't do that"), "cannot_do"); assert.equal(act("we don't have one"), "cannot_do");
+  assert.equal(act("it's done but he is getting worse"), "condition_changed"); assert.equal(act("she's not breathing"), "condition_changed");
+  assert.equal(act("skip this"), "skip"); assert.equal(act("say that again"), "repeat"); assert.equal(act("stop listening"), "stop");
+  assert.equal(act("why do I need to do this"), "ask"); assert.equal(act("purple elephants"), "unknown"); assert.equal(act(""), "none");
+  assert.deepEqual(parseCommand("hand off to ground"), { kind: "end", outcome: "handed_off" });
+});
+test("voice: a spoken emergency picks a checklist, and unclear speech goes to the general one", () => {
+  assert.equal(pickSymptom("my crewmate has chest pain"), "chest_pain"); assert.equal(pickSymptom("she can't breathe"), "breathing_difficulty");
+  assert.equal(pickSymptom("he just passed out"), "fainting"); assert.equal(pickSymptom("there is a lot of blood"), "bleeding_injury");
+  assert.equal(pickSymptom("something is wrong with Sam"), "other");
+  assert.ok(isHelpRequest("help")); assert.ok(isHelpRequest("he fainted")); assert.ok(!isHelpRequest("what time is it"));
+});

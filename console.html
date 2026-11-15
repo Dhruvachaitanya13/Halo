@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO crew console</title><link rel="stylesheet" href="scan/style.css?v=0.12.0">
+<title>HALO crew console</title><link rel="stylesheet" href="scan/style.css?v=0.13.0">
 <style>
   main { max-width: 760px }
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; font: 11px/1.4 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
@@ -27,6 +27,15 @@
   .label { font: 700 10.5px/1.4 var(--mono); letter-spacing: .6px; text-transform: uppercase; color: var(--amber) }
   .scenes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px } .scenes button { width: auto; margin: 0 }
   h3 { font-size: 15px; margin: 16px 0 4px }
+  .voice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card2) }
+  .mic { width: 56px; height: 56px; flex: none; margin: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--ink); border-color: var(--ink); position: relative }
+  .mic svg { width: 24px; height: 24px; fill: var(--on-ink) }
+  .mic.listening { background: var(--red); border-color: var(--red) } .mic.listening::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--red); animation: ring 1.2s infinite }
+  .mic.speaking { background: var(--blue); border-color: var(--blue) }
+  @keyframes ring { from { opacity: .8; transform: scale(1) } to { opacity: 0; transform: scale(1.35) } } @media (prefers-reduced-motion: reduce) { .mic.listening::after { animation: none } }
+  .vtext { flex: 1; min-width: 180px } .vtext b { display: block; font: 700 11px/1.5 var(--mono); letter-spacing: .5px; text-transform: uppercase; color: var(--dim) } .vtext span { font-size: 15px }
+  .vopts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--dim) } .vopts label { margin: 0; font-weight: 500; font-size: 13px }
+  .help { background: var(--red); border-color: var(--red); color: #fff }
 </style></head>
 <body><main>
 <div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO crew console</h1><small>Agent status, daily report and crew SOS. Not a medical device.</small></div></div>
@@ -47,6 +56,11 @@
 
 <section class="card" id="soscard" hidden>
   <small class="eyebrow">Crew SOS</small><h2 id="sostitle">Something is wrong with a crewmate</h2>
+  <div class="voice" id="voicebar">
+    <button class="mic" id="mic" type="button" aria-label="Talk to HALO"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v5a4 4 0 0 0 4 4Zm7-4a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.08A7 7 0 0 0 19 11Z"/></svg></button>
+    <div class="vtext"><b id="vstate">Voice ready</b><span id="vheard">Tap the microphone and say what is happening, for example "my crewmate fainted".</span></div>
+    <div class="vopts"><label><input type="checkbox" id="vspeak" checked> Read steps aloud</label><label><input type="checkbox" id="vhands"> Hands-free (listen after each step)</label></div>
+  </div>
   <div id="sospick"><p>Choose what is happening. HALO walks you through a checklist one step at a time.</p><div class="two" id="types"></div></div>
   <div id="sosrun" hidden>
     <span class="label" id="sreview"></span>
@@ -70,7 +84,8 @@
 <p id="err" class="warn" hidden></p>
 </main>
 <script type="module">
-import { CONFIG } from "./scan/js/config.js?v=0.12.0";
+import { CONFIG } from "./scan/js/config.js?v=0.13.0";
+import { createVoice, parseCommand, pickSymptom, isHelpRequest } from "./scan/js/voice.js?v=0.13.0";
 const API = (new URLSearchParams(location.search).get("agent") || CONFIG.AGENT_URL || "").replace(/\/$/, "");
 const $ = (id) => document.getElementById(id), el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
 const call = async (path, body, method) => {
@@ -79,7 +94,42 @@ const call = async (path, body, method) => {
 };
 const fail = (e) => { $("err").hidden = false; $("err").textContent = String(e.message || e); setTimeout(() => ($("err").hidden = true), 8000); };
 const NAMES = { heart_rate_bpm: ["Heart rate", "bpm"], resp_rate_bpm: ["Breathing rate", "/min"], systolic_bp_mmhg: ["Systolic blood pressure", "mmHg"], diastolic_bp_mmhg: ["Diastolic blood pressure", "mmHg"], body_temp_c: ["Body temperature", "°C"], spo2_pct: ["Blood oxygen", "%"], blink_rate_per_min: ["Blink rate", "/min"] };
-let crew = null, session = null;
+const QS = new URLSearchParams(location.search);
+let crew = QS.get("crew") || null, session = null, spokenStep = null, typeTitles = {};
+
+// ---------------------------------------------------------------- voice (browser speech; see scan/js/voice.js)
+const voice = createVoice({
+  onInterim: (t) => { $("vheard").textContent = t ? `"${t}"` : ""; },
+  onHeard: (t) => { $("vheard").textContent = `Heard: "${t}"`; heard(t).catch(fail); },
+  onState: (st) => { $("mic").className = "mic" + (st === "listening" ? " listening" : st === "speaking" ? " speaking" : "");
+    $("vstate").textContent = st === "listening" ? "Listening..." : st === "speaking" ? "HALO is speaking" : st === "denied" ? "Microphone not allowed" : "Voice ready";
+    if (st === "denied") $("vheard").textContent = "Allow the microphone for this page, or use the buttons."; },
+});
+if (!voice.canListen) { $("mic").disabled = true; $("vstate").textContent = "Voice input not available"; $("vheard").textContent = "This browser cannot listen. HALO can still read steps aloud, and the buttons work."; $("vhands").disabled = true; }
+if (!voice.canSpeak) { $("vspeak").checked = false; $("vspeak").disabled = true; }
+$("mic").onclick = () => { if (voice.state() === "listening") voice.stopListening(); else { voice.hush(); voice.listen(); } };
+$("vspeak").onchange = (e) => voice.setEnabled(e.target.checked);
+$("vhands").onchange = (e) => { voice.setHandsFree(e.target.checked); if (e.target.checked && voice.state() === "idle") voice.listen(); };
+const HINT = "Say done, can't, changed, or skip.";
+function speakStep(s) {                                  // read the current step once; called from showSos
+  const st = s.step || {}, key = `${s.session_id}:${s.state}:${st.id}`; if (key === spokenStep) return; const first = spokenStep === null || !String(spokenStep).startsWith(s.session_id); spokenStep = key;
+  if (s.state === "GUIDING") voice.say(`Step ${st.index} of ${st.total}. ${st.text}${first ? " " + HINT : ""}`);
+  else voice.say(s.state === "RESOLVED" ? "Checklist ended. Marked as resolved." : s.state === "HANDED_OFF" ? "Checklist ended. Handed off." : "Checklist complete.");
+}
+async function heard(text) {                              // what was said -> the same actions the buttons send
+  if (!session || session.state !== "GUIDING") {
+    if (!crew) return voice.say("Choose a crew member first.");
+    if (!isHelpRequest(text)) return voice.say("Say what is happening, for example: my crewmate has chest pain.");
+    const symptom = pickSymptom(text); voice.say(`Starting the ${typeTitles[symptom] || symptom.replace(/_/g, " ")} checklist.`, { then: () => start(symptom) }); return;
+  }
+  const c = parseCommand(text);
+  if (c.kind === "step") { if (!(session.step?.options || []).includes(c.action)) return voice.say("That is not an option for this step."); return act(c.action); }
+  if (c.kind === "repeat") { spokenStep = null; return speakStep(session); }
+  if (c.kind === "stop") { $("vhands").checked = false; voice.setHandsFree(false); return voice.say("Voice paused. Tap the microphone to talk."); }
+  if (c.kind === "end") return finish(c.outcome);
+  if (c.kind === "ask") { const r = await call("/api/v1/agent/ask", { question: c.question, session_id: session.session_id }); $("answer").hidden = false; $("answer").textContent = r.answer; return voice.say(r.answer); }
+  voice.say("I did not catch that. " + HINT);
+}
 
 async function loadCrews() {
   const { crews } = await call("/api/v1/crews"); const box = $("crews"); box.replaceChildren();
@@ -112,7 +162,7 @@ async function loadCrew() {
   } catch { $("nudgecard").hidden = true; }
 }
 
-function resetSos() { session = null; $("sospick").hidden = false; $("sosrun").hidden = true; $("sostitle").textContent = "Something is wrong with a crewmate"; $("answer").hidden = true; $("sdisc").textContent = ""; }
+function resetSos() { session = null; spokenStep = null; $("sospick").hidden = false; $("sosrun").hidden = true; $("sostitle").textContent = "Something is wrong with a crewmate"; $("answer").hidden = true; $("sdisc").textContent = ""; }
 function showSos(s) {
   session = s; $("sospick").hidden = true; $("sosrun").hidden = false; const st = s.step || {}, live = s.state === "GUIDING";
   $("sostitle").textContent = `${(s.symptom || "").replace(/_/g, " ")} checklist for ${s.crew_id}`; $("sreview").textContent = s.review_label || "";
@@ -124,25 +174,27 @@ function showSos(s) {
   const v = s.vitals_snapshot || {}; $("vlabel").textContent = [v.display_label, v.stale ? "These readings are old." : ""].filter(Boolean).join(" "); $("vitals").replaceChildren();
   for (const [k, m] of Object.entries(v.metrics || {})) { const tr = el("tr"), a = el("td", (NAMES[k] || [k])[0]); if (m.note) a.append(el("small", m.note)); tr.append(a, el("td", m.value == null ? "not measured" : `${m.value} ${(NAMES[k] || ["", ""])[1]}`)); $("vitals").append(tr); }
   const e = s.escalation || {}; $("sesc").textContent = e.triggered ? `Triggered (${e.state === "simulated" ? "dry run: nothing was actually sent" : e.state}).${e.acknowledged ? " Acknowledged by ground." : ""}` : "Not triggered.";
-  $("sdisc").textContent = s.disclaimer || "";
+  $("sdisc").textContent = s.disclaimer || ""; speakStep(s);
 }
-async function start(symptom) { try { showSos(await call("/api/v1/sos", { crew_id: crew, symptom })); } catch (e) { fail(e); } }
-for (const a of ["done", "cannot_do", "condition_changed", "skip"]) $("a-" + a).onclick = async () => { try { showSos(await call(`/api/v1/sos/${session.session_id}/step`, { action: a })); $("answer").hidden = true; } catch (e) { fail(e); } };
-$("resolve").onclick = async () => { try { showSos(await call(`/api/v1/sos/${session.session_id}/resolve`, { outcome: "resolved" })); setTimeout(resetSos, 2500); } catch (e) { fail(e); } };
-$("handoff").onclick = async () => { try { showSos(await call(`/api/v1/sos/${session.session_id}/resolve`, { outcome: "handed_off" })); setTimeout(resetSos, 2500); } catch (e) { fail(e); } };
+async function start(symptom) { try { showSos(await call("/api/v1/sos", { crew_id: crew, symptom })); $("soscard").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { fail(e); } }
+async function act(a) { try { showSos(await call(`/api/v1/sos/${session.session_id}/step`, { action: a })); $("answer").hidden = true; } catch (e) { fail(e); } }
+async function finish(outcome) { try { showSos(await call(`/api/v1/sos/${session.session_id}/resolve`, { outcome })); setTimeout(resetSos, 3500); } catch (e) { fail(e); } }
+for (const a of ["done", "cannot_do", "condition_changed", "skip"]) $("a-" + a).onclick = () => act(a);
+$("resolve").onclick = () => finish("resolved"); $("handoff").onclick = () => finish("handed_off");
 $("askform").onsubmit = async (ev) => { ev.preventDefault(); const q = $("askq").value.trim(); if (!q || !session) return;
-  try { const r = await call("/api/v1/agent/ask", { question: q, session_id: session.session_id }); $("answer").hidden = false; $("answer").textContent = r.answer + (r.answered_by === "fixed_reply" ? " (fixed reply: the language model is not switched on for this agent)" : ""); } catch (e) { fail(e); } };
+  try { const r = await call("/api/v1/agent/ask", { question: q, session_id: session.session_id }); $("answer").hidden = false; $("answer").textContent = r.answer + (r.answered_by === "fixed_reply" ? " (fixed reply: the language model is not switched on for this agent)" : ""); voice.say(r.answer); } catch (e) { fail(e); } };
 
 async function init() {
   if (!API) { $("conn").textContent = "No agent address is set in scan/js/config.js (AGENT_URL)."; $("dot").className = "dot bad"; return; }
   try { const h = await call("/healthz"); $("dot").className = "dot ok"; $("conn").textContent = `Agent connected (${h.mode})`; }
   catch { $("dot").className = "dot bad"; $("conn").textContent = "The HALO agent cannot be reached right now."; return; }
   const types = await call("/api/v1/sos/problem-types");
-  for (const t of types) { const b = el("button", t.title, "ghost"); b.type = "button"; b.onclick = () => start(t.symptom); $("types").append(b); }
+  for (const t of types) { typeTitles[t.symptom] = t.title; const b = el("button", t.title, "ghost"); b.type = "button"; b.onclick = () => start(t.symptom); $("types").append(b); }
   const scenes = await call("/api/v1/admin/demo").catch(() => []);
   for (const s of scenes) { const b = el("button", s.scene.replace(/_/g, " "), "ghost chip"); b.type = "button"; b.title = s.description;
     b.onclick = async () => { try { await call(`/api/v1/admin/demo/${s.scene}`, {}); $("scenemsg").textContent = `Scene "${s.scene}": ${s.description}`; crew = null; resetSos(); await loadCrews(); await loadCrew(); } catch (e) { fail(e); } }; $("scenes").append(b); }
   await loadCrews(); await loadCrew();
+  if (QS.get("sos")) $("soscard").scrollIntoView({ block: "start" });
   setInterval(() => { loadCrews().catch(() => {}); if (!session || session.state !== "GUIDING") loadCrew().catch(() => {}); }, 5000);
 }
 init().catch(fail);

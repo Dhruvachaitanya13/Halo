@@ -220,3 +220,16 @@ From the second real-device scan (heart signal quality 26%, needing 35%; 27 colo
 - **Heart rate, fewer false readings.** The plain green channel is the most sensitive method but does not cancel brightness changes that hit the whole face (screen light, auto-exposure, lamp flicker). A green result now only counts when POS on the same region also shows clearly more power than chance at that rate. In simulation with a steady 1% flicker and no pulse, false heart rates fell from 60 in 60 runs to 1 in 60; correct readings of a weak pulse went from 51 to 45 in 60.
 - **Crew console** (`../console.html`): a page for the HALO agent with crew status, the daily report, the crew SOS checklists, questions about a step, and the demo scenes. The results page links to it.
 - Checked: 27 unit tests; the console driven end to end against a locally running agent; a full scan in headless Chromium with the real face tracker. Not checked: Safari, a live person, or the console against the deployed agent.
+
+## Version 0.13
+
+One journey from check to help, and voice on the crew SOS.
+
+- **Results page shows the agent's view.** After a real check the page shows the agent's status for this crew member, how far their personal baseline has got, which readings the agent could not use and why, and two buttons: "I need help: start the crew SOS" and "Open the crew console". Both open the console with this crew member already selected.
+- **Voice on the crew console** (`js/voice.js`, used by `../console.html`). It uses the browser's own speech engines (Web Speech API): no server, no key, no cost.
+  - HALO reads each checklist step aloud.
+  - Tap the microphone and say what is happening ("my crewmate fainted") to start the matching checklist, then answer each step with "done", "can't", "changed" or "skip". "Say that again" repeats, a question such as "why this step?" goes to the agent, and "all clear" or "hand off" ends the checklist.
+  - Hands-free mode listens again after each step is read out.
+  - The voice only reads what the agent returned and sends the same actions as the buttons. It does not give advice of its own. Which checklist a spoken description starts is decided by simple keywords; the console says which one it chose and the buttons can pick another.
+- Speech output works without a network. Speech input depends on the browser: Chrome and Safari have it, Firefox on Android does not, so every action keeps its button.
+- Checked: 29 unit tests, including the mapping from spoken words to actions; the voice flow driven end to end against a locally running agent with simulated speech; a full scan reaching the agent and showing its view. Not checked: real speech in a real browser, a noisy room, or Safari.

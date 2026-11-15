@@ -1,13 +1,13 @@
 // HALO live health check: settings + consent -> camera scan -> cognitive tests -> sleep log -> results.
 // Video never leaves the device and is never stored. Only the numbers on the results screen are saved.
-import { CONFIG } from "./config.js?v=0.12.0";
-import * as D from "./dsp.js?v=0.12.0";
-import { runMission } from "./mission.js?v=0.12.0";
+import { CONFIG } from "./config.js?v=0.13.0";
+import * as D from "./dsp.js?v=0.13.0";
+import { runMission } from "./mission.js?v=0.13.0";
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(); // theme colours for the canvases
 
 const VISION = CONFIG.VISION_URL || "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3";
 const MODEL = CONFIG.MODEL_URL || "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.12.0";
+const Q = CONFIG.QUALITY_MIN, APP_VERSION = "0.13.0";
 const SAFARI = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 // run-time diagnostics, shown under the event log so a screenshot is enough to see what the scanner is doing
 const dbg = { src: SAFARI ? "canvas" : "video", ms: 0, frames: 0, faces: 0, errors: 0, errRun: 0, lastFrame: 0, lastErr: "", switched: false, delegate: "?" };
@@ -411,13 +411,22 @@ function drawSeries(series) {
 async function sendToAgent(record) {
   const el = $("agentmsg");
   if (state.simulated || !CONFIG.AGENT_URL) { el.hidden = true; return; }
-  el.hidden = false; el.textContent = "Sending to the HALO agent..."; $("consolelink").hidden = false;
+  el.hidden = false; el.textContent = "Sending to the HALO agent...";
+  const crewId = params.get("crew") || CONFIG.AGENT_CREW || "LIVE_01";
   try {
-    const r = await fetch(`${CONFIG.AGENT_URL.replace(/\/$/, "")}/api/v1/scan`, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ crew_id: params.get("crew") || CONFIG.AGENT_CREW || "LIVE_01", record }) });
+    const r = await fetch(`${CONFIG.AGENT_URL.replace(/\/$/, "")}/api/v1/scan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ crew_id: crewId, record }) });
     const j = await r.json().catch(() => null);
-    el.textContent = r.ok ? `Sent to the HALO agent as ${j?.crew_id ?? "crew"}. ${j?.duplicate ? "It already had this scan. " : ""}${j?.score?.baseline_building?.label ?? `Agent status: ${j?.score?.status ?? "not available"}`}.`
-                          : `The HALO agent did not accept the scan (answer ${r.status}).`;
+    if (!r.ok) { el.textContent = `The HALO agent did not accept the scan (answer ${r.status}).`; return; }
+    el.textContent = `The HALO agent has this check, filed under ${j?.crew_id ?? crewId}.${j?.duplicate ? " It already had it." : ""}`;
+    // What the agent makes of it: its own status for this crew member, how far their personal baseline has got, and what it could not use.
+    const sc = j?.score || {}, bb = sc.baseline_building, notes = [];
+    $("agentchip").textContent = bb?.label ? `Agent: ${bb.label}` : `Agent status: ${sc.status ?? "not available"}`;
+    if (bb?.label) notes.push("The agent compares you with your own earlier checks. It needs three before it can call a reading unusual.");
+    for (const [k, why] of Object.entries(j?.reading?.scan_context?.excluded || {})) notes.push(`${k.replace(/_/g, " ")} was not used: ${why}.`);
+    notes.push("Blood oxygen, blood pressure and temperature are not measured by a camera and stay blank.");
+    $("agentnotes").replaceChildren(...notes.map((t) => Object.assign(document.createElement("li"), { textContent: t, className: "note" })));
+    const q = `?crew=${encodeURIComponent(j?.crew_id ?? crewId)}`; $("consolelink").href = `../console.html${q}`; $("helplink").href = `../console.html${q}&sos=1`;
+    $("agentbox").hidden = false;
   } catch { el.textContent = "The HALO agent could not be reached. Your results are still saved."; }
 }
 async function save(record) {
