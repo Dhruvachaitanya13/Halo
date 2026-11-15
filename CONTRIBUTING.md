@@ -2,8 +2,8 @@
 
 ## First time
 
-    git clone https://github.com/Dhruvachaitanya13/halo.git
-    cd halo
+    git clone https://github.com/Dhruvachaitanya13/Halo.git
+    cd Halo
 
 ## Every change
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .. import core
@@ -29,6 +30,12 @@ routes_sos.attach_nudges(core.get_engine())
 
 for r in (routes_score, routes_sos, routes_report, routes_admin, routes_scan):
     app.include_router(r.router)
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    """The bare address opens the interactive API page instead of a blank 404."""
+    return RedirectResponse("/docs")
 
 
 @app.get("/healthz")

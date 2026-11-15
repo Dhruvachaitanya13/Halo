@@ -1,1 +1,36 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=scan/"><title>HALO</title><a href="scan/">Open the HALO health check</a>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HALO - crew health monitoring</title><link rel="stylesheet" href="scan/style.css">
+<style>
+  .hero { padding: 28px 0 6px } .hero h2 { font-size: 34px; letter-spacing: -1px; line-height: 1.1; margin: 0 0 12px }
+  .hero p { font-size: 17px; color: var(--dim); margin: 0 }
+  .links a { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 600 }
+  .links a:last-child { border-bottom: 0; padding-bottom: 0 } .links a:first-child { padding-top: 0 } .links a:hover { color: var(--blue) }
+  .links small { font-weight: 400 } .links span { color: var(--blue); flex: none }
+  .kv { display: grid; grid-template-columns: 96px 1fr; gap: 8px 14px; font-size: 15px } .kv b { font: 700 11px/1.9 var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--dim) }
+</style></head>
+<body><main>
+<div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO</h1><small>Team Helixonauts. NASA Space Apps Challenge 2026.</small></div></div>
+
+<div class="hero"><h2>Crew health monitoring that runs on a phone camera.</h2>
+<p>A short check for heart rate, breathing, alertness and thinking speed, an agent that compares each crew member with their own baseline, and the space environment from NASA data.</p></div>
+
+<div class="card"><h2>Try the health check</h2>
+<p>Open the QR page on this screen and scan it with your phone. The check runs in the phone's browser; the video never leaves the phone.</p>
+<a class="btn" href="scan/">Start the health check</a></div>
+
+<div class="card links"><h2>The parts</h2>
+<a href="scan/"><div>Health check<small>Camera scan, docking mission game, results</small></div><span>Open</span></a>
+<a href="https://halo-production-a2375a44.up.railway.app/docs"><div>HALO agent<small>Scoring against your own baseline, crew SOS checklists, daily report</small></div><span>API</span></a>
+<a href="https://github.com/Dhruvachaitanya13/Halo/tree/main/data"><div>NASA dataset<small>ISS radiation, space weather, Inspiration4 reference labs, with sources and checks</small></div><span>Data</span></a>
+<a href="https://github.com/Dhruvachaitanya13/Halo"><div>Source code<small>Everything, with how to run it</small></div><span>GitHub</span></a></div>
+
+<div class="card"><h2>What is real and what is not</h2>
+<div class="kv">
+<b>Measured</b><div>Camera readings and test results from the health check. Experimental; a reading is left blank when the signal is too weak.</div>
+<b>Historical</b><div>ISS radiation and space weather from NASA, May 2024, and NASA Inspiration4 reference labs. Not live, and not about the person being scanned.</div>
+<b>Simulated</b><div>The agent's demo crews and scenarios. Labelled as demo or simulated wherever they appear.</div>
+</div></div>
+
+<small class="center" style="margin-top:18px">HALO is a prototype. It is not a medical device and its results are not medical advice.</small>
+</main></body></html>

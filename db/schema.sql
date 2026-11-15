@@ -107,3 +107,18 @@ end $$;
 grant usage on schema public to anon;
 grant insert on public.scans to anon;
 grant select on public.nasa_radiation, public.nasa_space_weather, public.nasa_labs, public.radiation_forecasts to anon;
+
+-- ------------------------------------------------------------------ demo playback data (not NASA, not a camera measurement)
+-- 276 rows of composite playback vitals (agent/data/qr_scan_demo_clean.csv). Kept apart from scans. No public read policy:
+-- only the secret key can read it until the source and sharing terms of the data are confirmed.
+create table if not exists public.demo_vitals (
+  demo_record_id text primary key, crew_id text not null default 'CREW_01', scenario text not null default 'baseline',
+  step integer not null unique, step_minutes integer not null default 5, elapsed_min integer not null, mission_day integer not null,
+  clock_time text not null, activity text not null,
+  heart_rate_bpm numeric, resp_rate_bpm numeric, systolic_bp_mmhg numeric, diastolic_bp_mmhg numeric, body_temp_c numeric, spo2_pct numeric,
+  bp_new_reading boolean, temp_new_reading boolean, estimated_fields text not null default 'none',
+  source_hr_sleep_mood text not null default 'MM_01', source_bp_temp_spo2_resp text not null default 'MI_35446858',
+  data_context text not null default 'composite_dataset_demo', measurement_origin text not null default 'master_csv_playback_not_camera',
+  display_label text not null default 'Demo data - not measured from your camera'
+);
+alter table public.demo_vitals enable row level security;
