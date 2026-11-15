@@ -233,3 +233,9 @@ One journey from check to help, and voice on the crew SOS.
   - The voice only reads what the agent returned and sends the same actions as the buttons. It does not give advice of its own. Which checklist a spoken description starts is decided by simple keywords; the console says which one it chose and the buttons can pick another.
 - Speech output works without a network. Speech input depends on the browser: Chrome and Safari have it, Firefox on Android does not, so every action keeps its button.
 - Checked: 29 unit tests, including the mapping from spoken words to actions; the voice flow driven end to end against a locally running agent with simulated speech; a full scan reaching the agent and showing its view. Not checked: real speech in a real browser, a noisy room, or Safari.
+
+## Version 0.14
+
+- **Talk to HALO** (`../assistant.html`): one assistant reached by chat, browser voice, text message, phone call, and a call placed from the page through Twilio. It is served by the assistant service in `../twilio/` (see its README). `ASSISTANT_URL` in `js/config.js` is that service's address.
+- The results page has "Ask HALO about this check", which opens the assistant with that question already asked.
+- Checked: the assistant page driven end to end against a locally running assistant service and agent. Not checked: against a deployed service, or with a real Twilio account.

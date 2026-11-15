@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HALO health check</title><link rel="stylesheet" href="style.css?v=0.13.0"></head>
+<title>HALO health check</title><link rel="stylesheet" href="style.css?v=0.14.0"></head>
 <body><main>
 <div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>HALO health check</h1><small>Crew health prototype. Not a medical device.</small></div></div>
 
@@ -88,9 +88,9 @@
   <div class="card"><h2>Flagged</h2><ul id="flags"></ul></div>
   <div class="card"><h2>Trends on this device</h2><div id="trends"></div></div>
   <div class="card"><h2>Unusual readings (machine learning)</h2><div id="ml"></div><small>Experimental. The model learns only from this scan and your own earlier checks.</small></div>
-  <div class="card"><p id="saved"></p><p id="agentmsg" hidden></p><div id="agentbox" hidden><span class="tag live" id="agentchip"></span><ul id="agentnotes"></ul><a class="btn help" id="helplink" href="../console.html">I need help: start the crew SOS</a><a class="btn ghost" id="consolelink" href="../console.html">Open the crew console</a></div><button id="download" class="ghost">Download my results (JSON)</button><button id="csv" class="ghost">Download heart-rate series (CSV)</button>
+  <div class="card"><p id="saved"></p><p id="agentmsg" hidden></p><div id="agentbox" hidden><span class="tag live" id="agentchip"></span><ul id="agentnotes"></ul><a class="btn help" id="helplink" href="../console.html">I need help: start the crew SOS</a><a class="btn ghost" id="consolelink" href="../console.html">Open the crew console</a><a class="btn ghost" href="../assistant.html?q=my%20last%20check">Ask HALO about this check</a></div><button id="download" class="ghost">Download my results (JSON)</button><button id="csv" class="ghost">Download heart-rate series (CSV)</button>
     <button id="reset" class="ghost">Clear my baseline on this device</button><a class="btn" href="scan.html">Run another check</a></div>
 </section>
 
 <section id="error" class="card" hidden><h2>Something went wrong</h2><p id="errmsg"></p><a class="btn" href="">Try again</a></section>
-</main><script type="module" src="js/app.js?v=0.13.0"></script></body></html>
+</main><script type="module" src="js/app.js?v=0.14.0"></script></body></html>

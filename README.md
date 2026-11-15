@@ -12,6 +12,7 @@ HALO is a prototype. It is not a medical device and its results are not medical 
 | Project page and health check (start here) | https://dhruvachaitanya13.github.io/Halo/ |
 | QR page for the health check | https://dhruvachaitanya13.github.io/Halo/scan/ |
 | Crew console (agent status, daily report, crew SOS) | https://dhruvachaitanya13.github.io/Halo/console.html |
+| Talk to HALO (chat, voice, text and phone assistant) | https://dhruvachaitanya13.github.io/Halo/assistant.html |
 | HALO agent API (interactive page) | https://halo-production-a2375a44.up.railway.app/docs |
 
 Open the QR page on a laptop, scan the code with a phone, and the check runs in the phone's browser.
@@ -25,7 +26,7 @@ The camera only works over https, which GitHub Pages provides.
 | `agent/` | The HALO agent (FastAPI): scores each crew member against their own baseline, crew SOS checklists, daily report, nudges, demo scenes. Built by a teammate in `zh315-bit/Halo`, merged here with `git subtree`. | Live on Railway. 350 tests. Checklists are sourced but not medically reviewed. |
 | `db/` | Supabase (Postgres) schema, NASA loader, and how to read the data. | Live. NASA tables loaded; scans are saved from the live page. |
 | `data/` | The NASA-only dataset (Feature 3 package): ISS radiation in 5-minute bins with train and test tables, space weather events, Inspiration4 labs, a model contract, the build script, independent checks (`data/CHECKS.md`), and two optional variants: corrected labs and weather model inputs (`data/ADDITIONS.md`). | Checked and reproducible from `data/raw/`. First baseline: precision 0.93, recall 0.89 on the held-out days. |
-| `twilio/` | FastAPI bridge for text and voice alerts through Twilio, connected to the agent through `twilio_bridge.py`. | Tested locally against the agent. Not deployed; no messages are sent. |
+| `twilio/` | The HALO assistant service: one assistant by website chat, browser voice, text message and phone call (Twilio), plus alerts. `assistant.html` is its page. | Tested locally against the agent. Not deployed yet; no Twilio account connected. |
 | `docs/` | Team map. | |
 
 How the pieces connect: the phone runs the check in `scan/`, saves the result to Supabase and sends it to the agent. The agent scores it and runs the SOS flow. The NASA tables sit in Supabase for the dashboard. The Twilio bridge talks to the agent over HTTP.
